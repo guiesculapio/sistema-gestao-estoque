@@ -1,7 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import MainLayout from './components/layout/mainlayout';
-import Dashboard from './pages/dashboard';
-import Inventario from './pages/inventario';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import MainLayout from "./components/layout/mainlayout";
+import Dashboard from "./pages/dashboard";
+import Inventario from "./pages/inventario";
+import Relatorios from "./pages/relatorios";
 
 function App() {
   return (
@@ -13,7 +14,8 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="inventario" element={<Inventario />} />
-          
+          <Route path="relatorios" element={<Relatorios />} />
+
           {/* Redireciona qualquer rota errada para o dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
