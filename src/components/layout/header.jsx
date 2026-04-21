@@ -1,19 +1,11 @@
-import { useState } from "react";
-import { Search, Bell, ChevronDown, X } from "lucide-react";
+import { Bell, ChevronDown } from "lucide-react";
 
 /**
- * Header.jsx — Barra de topo fixa.
- *
- * Contém:
- * - Barra de busca central (expansível)
- * - Ícone de notificações com badge
- * - Avatar de usuário com dropdown (visual)
+ * Header.jsx — Barra de topo fixa simplificada.
+ * * Removida a barra de busca redundante para focar na busca 
+ * específica das tabelas de inventário/dashboard.
  */
 export default function Header() {
-  // Controla o foco/expansão da barra de busca
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
-
   return (
     <header
       className="
@@ -23,7 +15,7 @@ export default function Header() {
         z-10
       "
     >
-      {/* ── Título da página atual (dinâmico via breadcrumb futuro) ── */}
+      {/* ── Título da página atual ── */}
       <div className="hidden sm:block min-w-0">
         <h1 className="text-slate-800 text-base font-semibold truncate tracking-tight">
           Gestão de Estoque
@@ -37,48 +29,8 @@ export default function Header() {
         </p>
       </div>
 
-      {/* ── Spacer ── */}
+      {/* ── Spacer (Empurra as ações para a direita) ── */}
       <div className="flex-1" />
-
-      {/* ── Barra de busca ── */}
-      <div
-        className={`
-          relative flex items-center
-          transition-all duration-200 ease-out
-          ${searchFocused ? "w-72" : "w-48 sm:w-56"}
-        `}
-      >
-        <Search
-          size={15}
-          className="absolute left-3 text-slate-400 pointer-events-none flex-shrink-0"
-        />
-        <input
-          type="text"
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          placeholder="Buscar produto, SKU..."
-          className="
-            w-full pl-9 pr-8 py-2
-            text-sm text-slate-700 placeholder-slate-400
-            bg-slate-100 rounded-lg
-            border border-transparent
-            outline-none
-            focus:bg-white focus:border-slate-300 focus:shadow-sm
-            transition-all duration-200
-          "
-        />
-        {/* Botão limpar busca */}
-        {searchValue && (
-          <button
-            onClick={() => setSearchValue("")}
-            className="absolute right-2.5 text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <X size={13} />
-          </button>
-        )}
-      </div>
 
       {/* ── Ações da direita ── */}
       <div className="flex items-center gap-1.5">
@@ -117,7 +69,7 @@ export default function Header() {
             </span>
           </div>
 
-          {/* Nome (visível em telas maiores) */}
+          {/* Nome */}
           <span className="hidden md:block text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
             João Dono
           </span>
