@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useInventory } from "../context/InventoryContext"; // MUDANÇA: Usando o hook personalizado que criamos
+import { useInventory } from "../context/InventoryContext";
 import {
   BarChart,
   Bar,
@@ -22,6 +22,7 @@ import {
   Medal,
   Clock,
   Info,
+  ShoppingCart,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────
@@ -37,30 +38,15 @@ const PERIODOS = [
 
 const brl = (v) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
 const brlK = (v) =>
   v >= 1000
     ? `R$ ${(v / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`
     : brl(v);
-
 const pct = (v) =>
   v.toLocaleString("pt-BR", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   }) + "%";
-
-function agruparPorCategoria(lista) {
-  const mapa = {};
-  for (const p of lista) {
-    if (p.qtd > 0) {
-      if (!mapa[p.categoria])
-        mapa[p.categoria] = { categoria: p.categoria, custo: 0, venda: 0 };
-      mapa[p.categoria].custo += (p.precoCusto || 0) * p.qtd;
-      mapa[p.categoria].venda += (p.precoVenda || 0) * p.qtd;
-    }
-  }
-  return Object.values(mapa).sort((a, b) => b.venda - a.venda);
-}
 
 // ─────────────────────────────────────────────────────────────
 // 2. SUB-COMPONENTES DE UI
@@ -93,11 +79,7 @@ function PeriodSelector({ value, onChange }) {
                   onChange(p.value);
                   setOpen(false);
                 }}
-                className={`w-full text-left px-3.5 py-2 text-sm transition-colors ${
-                  p.value === value
-                    ? "bg-teal-50 text-teal-700 font-semibold"
-                    : "text-slate-600 hover:bg-slate-50"
-                }`}
+                className={`w-full text-left px-3.5 py-2 text-sm transition-colors ${p.value === value ? "bg-teal-50 text-teal-700 font-semibold" : "text-slate-600 hover:bg-slate-50"}`}
               >
                 {p.label}
               </button>
@@ -113,12 +95,10 @@ function ExportButtons() {
   return (
     <div className="flex items-center gap-2">
       <button className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm transition-colors">
-        <FileDown size={14} className="text-red-400" />
-        PDF
+        <FileDown size={14} className="text-red-400" /> PDF
       </button>
-      <button className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-[.98] rounded-lg shadow-sm shadow-emerald-200/70 transition-all">
-        <FileSpreadsheet size={14} />
-        Excel
+      <button className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-[.98] rounded-lg shadow-sm transition-all">
+        <FileSpreadsheet size={14} /> Excel
       </button>
     </div>
   );
@@ -138,8 +118,7 @@ function DualBarTooltip({ active, payload, label }) {
       <div className="space-y-1.5">
         <div className="flex justify-between gap-6">
           <span className="flex items-center gap-1.5 text-blue-300">
-            <span className="w-2 h-2 rounded-sm bg-blue-400" />
-            Custo
+            <span className="w-2 h-2 rounded-sm bg-blue-400" /> Custo
           </span>
           <span className="text-white font-bold tabular-nums">
             {brlK(custo)}
@@ -147,8 +126,7 @@ function DualBarTooltip({ active, payload, label }) {
         </div>
         <div className="flex justify-between gap-6">
           <span className="flex items-center gap-1.5 text-emerald-300">
-            <span className="w-2 h-2 rounded-sm bg-emerald-400" />
-            Venda
+            <span className="w-2 h-2 rounded-sm bg-emerald-400" /> Venda
           </span>
           <span className="text-white font-bold tabular-nums">
             {brlK(venda)}
@@ -254,67 +232,57 @@ function KpiCard({
 // ─────────────────────────────────────────────────────────────
 
 export default function Relatorios() {
-  // MUDANÇA: Pegando 'products' do contexto usando o hook useInventory
-  const { products } = useInventory();
-
+  const { products, sales, metrics } = useInventory();
   const [periodo, setPeriodo] = useState("30d");
 
-  // Cálculos baseados nos dados recebidos do Contexto
-  const dadosCategoria = useMemo(
-    () => agruparPorCategoria(products),
-    [products]
-  );
+  // 1. PERFORMANCE POR CATEGORIA (MUDANÇA: Agora usa vendas reais do array sales)
+  const dadosCategoriaVendas = useMemo(() => {
+    const mapa = {};
+    sales.forEach((sale) => {
+      if (!mapa[sale.categoria]) {
+        mapa[sale.categoria] = {
+          categoria: sale.categoria,
+          custo: 0,
+          venda: 0,
+        };
+      }
+      mapa[sale.categoria].custo += sale.custoUnitario * sale.qtdVendida;
+      mapa[sale.categoria].venda += sale.valorVenda * sale.qtdVendida;
+    });
+    return Object.values(mapa).sort((a, b) => b.venda - a.venda);
+  }, [sales]);
 
-  const topMargem = useMemo(
+  // 2. TOP MARGEM REAL (Quem trouxe mais lucro acumulado no período)
+  const topMargemReal = useMemo(() => {
+    return metrics.topSellingProducts || [];
+  }, [metrics]);
+
+  const maxMargemReal = useMemo(
     () =>
-      [...products]
-        .filter((p) => p.qtd > 0)
-        .map((p) => ({
-          ...p,
-          margemPct:
-            p.precoVenda > 0
-              ? ((p.precoVenda - p.precoCusto) / p.precoVenda) * 100
-              : 0,
-        }))
-        .sort((a, b) => b.margemPct - a.margemPct)
-        .slice(0, 6),
-    [products]
+      topMargemReal.length > 0
+        ? Math.max(...topMargemReal.map((p) => p.lucroTotal))
+        : 0,
+    [topMargemReal]
   );
 
-  const topParado = useMemo(
-    () =>
-      [...products]
-        .filter((p) => p.qtd > 0)
-        .sort((a, b) => (b.diasEstoque || 0) - (a.diasEstoque || 0))
-        .slice(0, 6),
-    [products]
-  );
-
-  // Totais Globais
-  const totalCusto = useMemo(
-    () => products.reduce((s, p) => s + (p.precoCusto || 0) * (p.qtd || 0), 0),
-    [products]
-  );
-  const totalVenda = useMemo(
-    () => products.reduce((s, p) => s + (p.precoVenda || 0) * (p.qtd || 0), 0),
-    [products]
-  );
-  const lucroBruto = totalVenda - totalCusto;
-  const roiGlobal = totalCusto > 0 ? (lucroBruto / totalCusto) * 100 : 0;
-  const margemGlobal = totalVenda > 0 ? (lucroBruto / totalVenda) * 100 : 0;
-  const maxMargem =
-    topMargem.length > 0 ? Math.max(...topMargem.map((p) => p.margemPct)) : 0;
+  // 3. MENOR GIRO / CAPITAL PRESO (Produtos com estoque mas sem vendas)
+  const topParado = useMemo(() => {
+    return products
+      .filter((p) => p.qtd > 0 && !sales.some((s) => s.productId === p.id))
+      .sort((a, b) => b.precoCusto * b.qtd - a.precoCusto * a.qtd)
+      .slice(0, 6);
+  }, [products, sales]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* ── Cabeçalho ───────────────────────────────────── */}
+      {/* Cabeçalho */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-xl font-bold text-slate-800 tracking-tight">
-            Relatórios
+            Relatórios de Performance
           </h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            Análise financeira em tempo real
+            Análise financeira baseada em vendas reais
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -323,15 +291,15 @@ export default function Relatorios() {
         </div>
       </div>
 
-      {/* ── Gráfico de Custo vs. Venda ─────────────────────── */}
+      {/* Gráfico de Performance Real */}
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-slate-100 flex-wrap gap-3">
           <div>
             <h3 className="text-sm font-bold text-slate-700">
-              Custo vs. Venda por Categoria
+              Vendas vs. Custo por Categoria
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Distribuição do capital investido por grupo
+              Retorno real obtido em cada grupo de produtos
             </p>
           </div>
           <div className="flex items-center gap-5 text-[11px] font-semibold">
@@ -347,10 +315,10 @@ export default function Relatorios() {
         </div>
 
         <div className="px-2 pt-4 pb-2">
-          {dadosCategoria.length > 0 ? (
+          {dadosCategoriaVendas.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart
-                data={dadosCategoria}
+                data={dadosCategoriaVendas}
                 margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
                 barCategoryGap="30%"
                 barGap={3}
@@ -384,13 +352,14 @@ export default function Relatorios() {
             </ResponsiveContainer>
           ) : (
             <div className="h-[240px] flex items-center justify-center text-slate-400 text-sm italic">
-              Nenhum dado disponível para exibir o gráfico.
+              Realize vendas no PDV para visualizar os dados.
             </div>
           )}
         </div>
 
+        {/* Grid de categorias abaixo do gráfico - PRESERVADO */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border-t border-slate-100">
-          {dadosCategoria.map((cat) => {
+          {dadosCategoriaVendas.map((cat) => {
             const lucro = cat.venda - cat.custo;
             const mg = cat.venda > 0 ? (lucro / cat.venda) * 100 : 0;
             return (
@@ -419,7 +388,7 @@ export default function Relatorios() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Card: Top Margem */}
+        {/* Card: Top Lucro Real */}
         <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100">
             <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
@@ -427,18 +396,18 @@ export default function Relatorios() {
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-700 leading-none">
-                Top Margem
+                Top Lucro Real
               </h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Produtos com maior rentabilidade unitária
+                Produtos que mais geraram dinheiro em caixa
               </p>
             </div>
           </div>
           <div className="divide-y divide-slate-100">
-            {topMargem.length > 0 ? (
-              topMargem.map((p, i) => (
+            {topMargemReal.length > 0 ? (
+              topMargemReal.map((p, i) => (
                 <div
-                  key={p.id}
+                  key={p.nome}
                   className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50/60 transition-colors"
                 >
                   <RankBadge rank={i + 1} />
@@ -448,34 +417,26 @@ export default function Relatorios() {
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <MiniBar
-                        value={p.margemPct}
-                        max={maxMargem}
+                        value={p.lucroTotal}
+                        max={maxMargemReal}
                         color="bg-emerald-400"
                       />
-                      <span className="text-[11px] font-bold text-emerald-600 tabular-nums w-12 text-right">
-                        {pct(p.margemPct)}
+                      <span className="text-[11px] font-bold text-emerald-600 tabular-nums w-16 text-right">
+                        {brl(p.lucroTotal)}
                       </span>
                     </div>
-                  </div>
-                  <div className="text-right flex-shrink-0 ml-2">
-                    <p className="text-xs font-bold text-slate-700 tabular-nums">
-                      {brl(p.precoVenda - p.precoCusto)}
-                    </p>
-                    <p className="text-[10px] text-slate-400 text-right">
-                      lucro/un.
-                    </p>
                   </div>
                 </div>
               ))
             ) : (
               <p className="p-10 text-center text-sm text-slate-400 italic">
-                Sem itens em estoque.
+                Sem vendas registradas.
               </p>
             )}
           </div>
         </div>
 
-        {/* Card: Menor Giro (Capital Parado) */}
+        {/* Card: Capital Preso (Sem Giro) */}
         <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100">
             <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
@@ -483,62 +444,47 @@ export default function Relatorios() {
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-700 leading-none">
-                Menor Giro
+                Capital Preso
               </h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Produtos há mais tempo no estoque
+                Itens em estoque que ainda não venderam
               </p>
             </div>
           </div>
           <div className="divide-y divide-slate-100">
             {topParado.length > 0 ? (
-              topParado.map((p, i) => {
-                const capParado = (p.precoCusto || 0) * (p.qtd || 0);
-                const dias = p.diasEstoque || 0;
-                const urgente = dias >= 60;
-                return (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50/60 transition-colors"
-                  >
-                    <RankBadge rank={i + 1} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-700 truncate">
-                        {p.nome}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <MiniBar
-                          value={dias}
-                          max={90}
-                          color={urgente ? "bg-red-400" : "bg-amber-400"}
-                        />
-                        <span
-                          className={`text-[11px] font-bold tabular-nums w-12 text-right ${urgente ? "text-red-500" : "text-amber-600"}`}
-                        >
-                          {dias}d
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-2">
-                      <p className="text-xs font-bold text-slate-700 tabular-nums">
-                        {brlK(capParado)}
-                      </p>
-                      <p className="text-[10px] text-slate-400 text-right">
-                        valor parado
-                      </p>
-                    </div>
+              topParado.map((p, i) => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50/60 transition-colors"
+                >
+                  <RankBadge rank={i + 1} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-700 truncate">
+                      {p.nome}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {p.qtd} unidades paradas
+                    </p>
                   </div>
-                );
-              })
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-slate-700 tabular-nums">
+                      {brlK(p.precoCusto * p.qtd)}
+                    </p>
+                    <p className="text-[10px] text-slate-400">valor de custo</p>
+                  </div>
+                </div>
+              ))
             ) : (
               <p className="p-10 text-center text-sm text-slate-400 italic">
-                Nenhum produto em estoque.
+                Tudo girando bem!
               </p>
             )}
           </div>
         </div>
       </div>
 
+      {/* Resumo Financeiro Real - PRESERVADO E ATUALIZADO */}
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-wrap gap-3">
           <div className="flex items-center gap-2.5">
@@ -550,88 +496,95 @@ export default function Relatorios() {
                 Resumo Financeiro & ROI
               </h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Visão geral do retorno sobre o estoque
+                Performance baseada em fluxo de caixa real
               </p>
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
-            <Info size={11} className="text-slate-400" />
-            ROI = (Venda − Custo) ÷ Custo × 100
+            <Info size={11} className="text-slate-400" /> ROI = (Lucro Líquido /
+            Custo das Vendas) * 100
           </div>
         </div>
 
         <div className="p-5 space-y-5">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <KpiCard
-              label="Capital Investido"
-              value={brlK(totalCusto)}
-              sub="Custo total em estoque"
+              label="Capital em Estoque"
+              value={brlK(metrics.stockCost)}
+              sub="Valor parado"
               icon={Package}
               colorScheme="blue"
             />
             <KpiCard
-              label="Valor de Venda"
-              value={brlK(totalVenda)}
-              sub="Estimativa de faturamento"
+              label="Faturamento Real"
+              value={brlK(metrics.realRevenue)}
+              sub="Total em vendas"
               icon={DollarSign}
               colorScheme="emerald"
-              positive={totalVenda > totalCusto}
+              positive={true}
             />
             <KpiCard
-              label="Lucro Bruto"
-              value={brlK(lucroBruto)}
-              sub={`Margem: ${pct(margemGlobal)}`}
+              label="Lucro Real"
+              value={brlK(metrics.realProfit)}
+              sub="Líquido no período"
               icon={TrendingUp}
               colorScheme="teal"
-              positive={lucroBruto > 0}
+              positive={metrics.realProfit > 0}
             />
             <KpiCard
-              label="ROI Global"
-              value={pct(roiGlobal)}
-              sub="Retorno sobre investimento"
-              icon={BarChart2}
+              label="Vendas Totais"
+              value={metrics.totalSalesCount}
+              sub="Transações feitas"
+              icon={ShoppingCart}
               colorScheme="violet"
-              positive={roiGlobal >= 20}
             />
           </div>
 
+          {/* Barra de Composição - PRESERVADA */}
           <div className="rounded-xl bg-slate-50 border border-slate-200/60 p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-slate-600">
-                Composição do Valor de Estoque
+                Eficiência de Conversão (Faturamento vs Estoque)
               </p>
               <p className="text-[11px] text-slate-400 tabular-nums">
-                {brlK(totalVenda)} total estimado
+                {brlK(metrics.realRevenue)} faturado
               </p>
             </div>
             <div className="flex h-6 rounded-xl overflow-hidden gap-px mb-3 bg-slate-200">
-              {totalVenda > 0 ? (
+              {metrics.realRevenue > 0 && (
                 <>
                   <div
                     className="bg-blue-400 flex items-center justify-center transition-all duration-700"
-                    style={{ width: `${(totalCusto / totalVenda) * 100}%` }}
+                    style={{
+                      width: `${(metrics.stockCost / (metrics.stockCost + metrics.realRevenue)) * 100}%`,
+                    }}
                   >
                     <span className="text-[9px] font-bold text-white px-1 truncate hidden sm:block">
-                      {pct((totalCusto / totalVenda) * 100)} Custo
+                      Estoque
                     </span>
                   </div>
                   <div className="bg-emerald-400 flex-1 flex items-center justify-center transition-all duration-700">
                     <span className="text-[9px] font-bold text-white px-1 truncate hidden sm:block">
-                      {pct((lucroBruto / totalVenda) * 100)} Lucro
+                      Vendas
                     </span>
                   </div>
                 </>
-              ) : null}
+              )}
             </div>
             <div className="flex items-center gap-6 text-xs text-slate-500">
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-blue-400" /> Custo —{" "}
-                <strong className="text-blue-600">{brlK(totalCusto)}</strong>
+                <span className="w-2.5 h-2.5 rounded-sm bg-blue-400" /> Custo em
+                Prateleira —{" "}
+                <strong className="text-blue-600">
+                  {brlK(metrics.stockCost)}
+                </strong>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400" /> Lucro
-                —{" "}
-                <strong className="text-emerald-600">{brlK(lucroBruto)}</strong>
+                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400" /> Total
+                Vendido —{" "}
+                <strong className="text-emerald-600">
+                  {brlK(metrics.realRevenue)}
+                </strong>
               </span>
             </div>
           </div>

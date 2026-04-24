@@ -11,67 +11,84 @@ export const InventoryContext = createContext();
 
 // 2. Provedor que vai envolver o App
 export function InventoryProvider({ children }) {
-  // Estado Inicial mantido conforme solicitado
+  // Estado de Produtos (Estoque Atual)
   const [products, setProducts] = useState([
     {
       id: 1,
-      barcode: "789001", // Adicionei um exemplo de barcode para você testar
+      barcode: "789001",
       nome: "Cabo HDMI 2.1 2m",
       categoria: "Cabos",
-      qtd: 3,
+      qtd: 10,
       precoCusto: 28.0,
       precoVenda: 49.9,
-      status: "estoque_baixo",
+      status: "em_estoque",
     },
     {
       id: 2,
       barcode: "789002",
       nome: "Cadeira Ergonômica Flexform",
       categoria: "Mobiliário",
-      qtd: 3,
+      qtd: 5,
       precoCusto: 980.0,
       precoVenda: 1850.0,
-      status: "estoque_baixo",
-    },
-    {
-      id: 3,
-      barcode: "789003",
-      nome: "Headset Sony WH-1000XM5",
-      categoria: "Áudio",
-      qtd: 18,
-      precoCusto: 870.0,
-      precoVenda: 1299.0,
       status: "em_estoque",
     },
   ]);
 
-  // --- FUNÇÕES CRUD EXISTENTES ---
+  // --- NOVO ESTADO: HISTÓRICO DE VENDAS REALIZADAS ---
+  const [sales, setSales] = useState([]);
 
+  // --- FUNÇÕES CRUD ---
   const addProduct = (newProduct) => {
-    // Mantive sua lógica de ID, mas incluí o spread do novo produto
     setProducts((prev) => [...prev, { ...newProduct, id: Date.now() }]);
   };
+
+  // NOVA FUNÇÃO: updateProduct (Essencial para o Modal de Edição funcionar)
+  const updateProduct = useCallback((id, updatedData) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p))
+    );
+  }, []);
 
   const deleteProduct = (id) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
-  // --- NOVA FUNÇÃO: BAIXA DE ESTOQUE (VENDA) ---
-
+  // --- FUNÇÃO DE VENDA ATUALIZADA (BAIXA + REGISTRO) ---
   const sellItems = useCallback((itemsToSell) => {
+    const timestamp = new Date().toISOString();
+
+    // 1. Registra a venda no histórico
+    const newSalesEntry = itemsToSell.map((item) => ({
+      saleId: Date.now() + Math.random(),
+      productId: item.id,
+      nome: item.nome,
+      categoria: item.categoria,
+      qtdVendida: item.cartQty,
+      valorVenda: item.precoVenda,
+      custoUnitario: item.precoCusto,
+      lucroReal: (item.precoVenda - item.precoCusto) * item.cartQty,
+      data: timestamp,
+    }));
+
+    setSales((prev) => [...prev, ...newSalesEntry]);
+
+    // 2. Atualiza o estoque
     setProducts((prevProducts) =>
       prevProducts.map((product) => {
-        // Verifica se o produto atual está no carrinho de vendas
         const itemInCart = itemsToSell.find((item) => item.id === product.id);
 
         if (itemInCart) {
           const novaQtd = Math.max(0, (product.qtd || 0) - itemInCart.cartQty);
-
-          // Atualiza a quantidade e o status automaticamente baseado na sua regra de negócio
           return {
             ...product,
             qtd: novaQtd,
-            status: novaQtd < 5 ? "estoque_baixo" : "em_estoque",
+            status:
+              novaQtd <= 0
+                ? "esgotado"
+                : novaQtd < 5
+                  ? "estoque_baixo"
+                  : "em_estoque",
           };
         }
         return product;
@@ -79,26 +96,64 @@ export function InventoryProvider({ children }) {
     );
   }, []);
 
-  // --- CÁLCULOS AUTOMÁTICOS (MANTIDOS) ---
+  // --- CÁLCULOS DE MÉTRICAS ---
   const metrics = useMemo(() => {
-    const totalCost = products.reduce(
-      (acc, p) => acc + (p.precoCusto || 0) * (p.qtd || 0),
+    const stockCost = products.reduce(
+      (acc, p) => acc + p.precoCusto * p.qtd,
       0
     );
-    const totalValue = products.reduce(
-      (acc, p) => acc + (p.precoVenda || 0) * (p.qtd || 0),
+    const stockPotentialValue = products.reduce(
+      (acc, p) => acc + p.precoVenda * p.qtd,
       0
     );
-    const totalProfit = totalValue - totalCost;
+
+    const realRevenue = sales.reduce(
+      (acc, s) => acc + s.valorVenda * s.qtdVendida,
+      0
+    );
+    const realProfit = sales.reduce((acc, s) => acc + s.lucroReal, 0);
+
+    const salesPerformance = sales.reduce((acc, sale) => {
+      if (!acc[sale.productId]) {
+        acc[sale.productId] = {
+          nome: sale.nome,
+          lucroTotal: 0,
+          totalVendido: 0,
+        };
+      }
+      acc[sale.productId].lucroTotal += sale.lucroReal;
+      acc[sale.productId].totalVendido += sale.qtdVendida;
+      return acc;
+    }, {});
+
+    const topSellingProducts = Object.values(salesPerformance)
+      .sort((a, b) => b.lucroTotal - a.lucroTotal)
+      .slice(0, 5);
+
     const lowStockCount = products.filter((p) => p.qtd < 5).length;
 
-    return { totalCost, totalValue, totalProfit, lowStockCount };
-  }, [products]);
+    return {
+      stockCost,
+      stockPotentialValue,
+      realRevenue,
+      realProfit,
+      topSellingProducts,
+      lowStockCount,
+      totalSalesCount: sales.length,
+    };
+  }, [products, sales]);
 
   return (
     <InventoryContext.Provider
-      // Adicionado sellItems no value para ser acessado pela página de Vendas
-      value={{ products, addProduct, deleteProduct, sellItems, metrics }}
+      value={{
+        products,
+        sales,
+        addProduct,
+        updateProduct, // Exportada para uso no Modal
+        deleteProduct,
+        sellItems,
+        metrics,
+      }}
     >
       {children}
     </InventoryContext.Provider>

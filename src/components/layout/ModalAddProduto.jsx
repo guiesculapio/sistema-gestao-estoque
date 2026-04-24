@@ -1,19 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Save, Barcode } from "lucide-react";
-// AJUSTE: Mantido o caminho das duas pastas para chegar em context
+// Mantendo o seu caminho de importação original
 import { useInventory } from "../../context/InventoryContext";
 
-export default function ModalAddProduto({ isOpen, onClose }) {
-  const { addProduct } = useInventory();
+export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
+  const { addProduct, updateProduct } = useInventory();
 
-  const [formData, setFormData] = useState({
-    barcode: "", // NOVO CAMPO
+  const initialState = {
+    barcode: "",
     nome: "",
     categoria: "",
     qtd: 0,
     precoCusto: 0,
     precoVenda: 0,
-  });
+  };
+
+  const [formData, setFormData] = useState(initialState);
+
+  // EFFEITO DE EDIÇÃO: Sincroniza o form quando abre para editar ou limpa para novo
+  useEffect(() => {
+    if (productToEdit) {
+      setFormData(productToEdit);
+    } else {
+      setFormData(initialState);
+    }
+  }, [productToEdit, isOpen]);
 
   if (!isOpen) return null;
 
@@ -28,17 +39,18 @@ export default function ModalAddProduto({ isOpen, onClose }) {
           ? "estoque_baixo"
           : "em_estoque";
 
-    addProduct({ ...formData, status: statusFinal });
+    const dadosProcessados = { ...formData, status: statusFinal };
 
-    // Limpa e fecha (ATUALIZADO para limpar o barcode também)
-    setFormData({
-      barcode: "",
-      nome: "",
-      categoria: "",
-      qtd: 0,
-      precoCusto: 0,
-      precoVenda: 0,
-    });
+    if (productToEdit) {
+      // Se estamos editando, usamos a função de update
+      updateProduct(productToEdit.id, dadosProcessados);
+    } else {
+      // Se é novo, usamos a função de adicionar
+      addProduct({ ...dadosProcessados, id: Date.now() });
+    }
+
+    // Limpa e fecha
+    setFormData(initialState);
     onClose();
   };
 
@@ -47,7 +59,9 @@ export default function ModalAddProduto({ isOpen, onClose }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 className="text-lg font-bold text-slate-800">Novo Produto</h3>
+          <h3 className="text-lg font-bold text-slate-800">
+            {productToEdit ? "Editar Produto" : "Novo Produto"}
+          </h3>
           <button
             onClick={onClose}
             className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
@@ -58,7 +72,7 @@ export default function ModalAddProduto({ isOpen, onClose }) {
 
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* CAMPO NOVO: CÓDIGO DE BARRAS */}
+          {/* CAMPO: CÓDIGO DE BARRAS */}
           <div>
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase mb-1">
               <Barcode size={14} className="text-slate-400" />
@@ -169,7 +183,7 @@ export default function ModalAddProduto({ isOpen, onClose }) {
               type="submit"
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-sm transition-colors"
             >
-              <Save size={16} /> Salvar
+              <Save size={16} /> {productToEdit ? "Atualizar" : "Salvar"}
             </button>
           </div>
         </form>

@@ -217,6 +217,7 @@ export default function Inventario() {
   const [busca, setBusca] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: "nome", dir: "asc" });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null); // Estado para o produto em edição
 
   // Dados e funções do Contexto
   const { products: produtos, deleteProduct } = useInventory();
@@ -253,10 +254,17 @@ export default function Inventario() {
     );
   };
 
-  const handleEdit = (produto) =>
-    console.log("[TODO] Abrir modal de edição para:", produto.nome);
+  // Função handleEdit atualizada
+  const handleEdit = (produto) => {
+    setEditingProduct(produto);
+    setIsModalOpen(true);
+  };
 
-  // --- NOVA FUNÇÃO DE EXCLUSÃO COM CONFIRMAÇÃO ---
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingProduct(null); // Limpa o produto em edição ao fechar
+  };
+
   const handleDelete = (id, nome) => {
     const confirmou = window.confirm(
       `Deseja realmente excluir o produto "${nome}"?`
@@ -277,7 +285,6 @@ export default function Inventario() {
     0
   );
   const lucroBruto = totalVenda - totalCusto;
-  const margemMedia = totalVenda > 0 ? (lucroBruto / totalVenda) * 100 : 0;
 
   return (
     <div className="space-y-5">
@@ -291,7 +298,10 @@ export default function Inventario() {
           </p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setEditingProduct(null); // Garante que é uma nova adição
+            setIsModalOpen(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-sm transition-all active:scale-95"
         >
           <Plus size={15} strokeWidth={2.5} /> Adicionar Produto
@@ -403,7 +413,7 @@ export default function Inventario() {
                     key={produto.id}
                     produto={produto}
                     onEdit={handleEdit}
-                    onDelete={handleDelete} // Agora usa a função com confirmação
+                    onDelete={handleDelete}
                   />
                 ))
               ) : (
@@ -413,10 +423,8 @@ export default function Inventario() {
           </table>
         </div>
 
-        {/* Rodapé com métricas automáticas */}
         {produtosFiltrados.length > 0 && (
           <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-100 bg-slate-50/50 flex-wrap gap-3">
-            {/* ... (código do rodapé mantido como você enviou) ... */}
             <p className="text-xs text-slate-400">
               Exibindo{" "}
               <span className="font-medium text-slate-600">
@@ -456,9 +464,11 @@ export default function Inventario() {
         )}
       </div>
 
+      {/* MODAL ATUALIZADO COM PROPS DE EDIÇÃO */}
       <ModalAddProduto
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
+        productToEdit={editingProduct} // Passa o produto se estiver editando
       />
     </div>
   );
