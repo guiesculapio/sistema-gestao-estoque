@@ -4,63 +4,76 @@ import {
   useState,
   useMemo,
   useCallback,
+  useEffect,
 } from "react";
 
-// 1. Criamos o Contexto
 export const InventoryContext = createContext();
 
-// 2. Provedor que vai envolver o App
 export function InventoryProvider({ children }) {
-  // Estado de Produtos (Estoque Atual)
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      barcode: "789001",
-      nome: "Cabo HDMI 2.1 2m",
-      categoria: "Cabos",
-      qtd: 10,
-      precoCusto: 28.0,
-      precoVenda: 49.9,
-      status: "em_estoque",
-    },
-    {
-      id: 2,
-      barcode: "789002",
-      nome: "Cadeira Ergonômica Flexform",
-      categoria: "Mobiliário",
-      qtd: 5,
-      precoCusto: 980.0,
-      precoVenda: 1850.0,
-      status: "em_estoque",
-    },
-  ]);
+  // Inicialização do estado com persistência local
+  const [products, setProducts] = useState(() => {
+    const saved = localStorage.getItem("@inventory_products");
+    return saved
+      ? JSON.parse(saved)
+      : [
+          {
+            id: 1,
+            barcode: "789001",
+            nome: "Cabo HDMI 2.1 2m",
+            categoria: "Cabos",
+            qtd: 10,
+            precoCusto: 28.0,
+            precoVenda: 49.9,
+            status: "em_estoque",
+          },
+          {
+            id: 2,
+            barcode: "789002",
+            nome: "Cadeira Ergonômica Flexform",
+            categoria: "Mobiliário",
+            qtd: 5,
+            precoCusto: 980.0,
+            precoVenda: 1850.0,
+            status: "em_estoque",
+          },
+        ];
+  });
 
-  // --- NOVO ESTADO: HISTÓRICO DE VENDAS REALIZADAS ---
-  const [sales, setSales] = useState([]);
+  const [sales, setSales] = useState(() => {
+    const saved = localStorage.getItem("@inventory_sales");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Persistência automática
+  useEffect(() => {
+    localStorage.setItem("@inventory_products", JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem("@inventory_sales", JSON.stringify(sales));
+  }, [sales]);
 
   // --- FUNÇÕES CRUD ---
-  const addProduct = (newProduct) => {
+  const addProduct = useCallback((newProduct) => {
     setProducts((prev) => [...prev, { ...newProduct, id: Date.now() }]);
-  };
+  }, []);
 
-  // NOVA FUNÇÃO: updateProduct (Essencial para o Modal de Edição funcionar)
   const updateProduct = useCallback((id, updatedData) => {
     setProducts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p))
     );
   }, []);
 
-  const deleteProduct = (id) => {
+  const deleteProduct = useCallback((id) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
-  };
+  }, []);
 
-  // --- FUNÇÃO DE VENDA ATUALIZADA (BAIXA + REGISTRO) ---
+  // --- FUNÇÃO DE VENDA (COM REGISTRO DE HISTÓRICO) ---
   const sellItems = useCallback((itemsToSell) => {
     const timestamp = new Date().toISOString();
 
-    // 1. Registra a venda no histórico
     const newSalesEntry = itemsToSell.map((item) => ({
-      saleId: Date.now() + Math.random(),
+      saleId: `SALE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       productId: item.id,
       nome: item.nome,
       categoria: item.categoria,
@@ -73,11 +86,9 @@ export function InventoryProvider({ children }) {
 
     setSales((prev) => [...prev, ...newSalesEntry]);
 
-    // 2. Atualiza o estoque
     setProducts((prevProducts) =>
       prevProducts.map((product) => {
         const itemInCart = itemsToSell.find((item) => item.id === product.id);
-
         if (itemInCart) {
           const novaQtd = Math.max(0, (product.qtd || 0) - itemInCart.cartQty);
           return {
@@ -96,7 +107,7 @@ export function InventoryProvider({ children }) {
     );
   }, []);
 
-  // --- CÁLCULOS DE MÉTRICAS ---
+  // --- MÉTRICAS GLOBAIS ---
   const metrics = useMemo(() => {
     const stockCost = products.reduce(
       (acc, p) => acc + p.precoCusto * p.qtd,
@@ -113,23 +124,6 @@ export function InventoryProvider({ children }) {
     );
     const realProfit = sales.reduce((acc, s) => acc + s.lucroReal, 0);
 
-    const salesPerformance = sales.reduce((acc, sale) => {
-      if (!acc[sale.productId]) {
-        acc[sale.productId] = {
-          nome: sale.nome,
-          lucroTotal: 0,
-          totalVendido: 0,
-        };
-      }
-      acc[sale.productId].lucroTotal += sale.lucroReal;
-      acc[sale.productId].totalVendido += sale.qtdVendida;
-      return acc;
-    }, {});
-
-    const topSellingProducts = Object.values(salesPerformance)
-      .sort((a, b) => b.lucroTotal - a.lucroTotal)
-      .slice(0, 5);
-
     const lowStockCount = products.filter((p) => p.qtd < 5).length;
 
     return {
@@ -137,7 +131,6 @@ export function InventoryProvider({ children }) {
       stockPotentialValue,
       realRevenue,
       realProfit,
-      topSellingProducts,
       lowStockCount,
       totalSalesCount: sales.length,
     };
@@ -149,7 +142,7 @@ export function InventoryProvider({ children }) {
         products,
         sales,
         addProduct,
-        updateProduct, // Exportada para uso no Modal
+        updateProduct,
         deleteProduct,
         sellItems,
         metrics,
@@ -160,5 +153,12 @@ export function InventoryProvider({ children }) {
   );
 }
 
-// 3. Hook personalizado
-export const useInventory = () => useContext(InventoryContext);
+export const useInventory = () => {
+  const context = useContext(InventoryContext);
+  if (!context) {
+    throw new Error(
+      "useInventory deve ser usado dentro de um InventoryProvider"
+    );
+  }
+  return context;
+};

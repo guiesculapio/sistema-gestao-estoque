@@ -25,6 +25,11 @@ import {
   ShoppingCart,
 } from "lucide-react";
 
+// Bibliotecas de exportação
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import * as XLSX from "xlsx";
+
 // ─────────────────────────────────────────────────────────────
 // 1. CONFIGURAÇÕES E HELPERS
 // ─────────────────────────────────────────────────────────────
@@ -87,19 +92,6 @@ function PeriodSelector({ value, onChange }) {
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-function ExportButtons() {
-  return (
-    <div className="flex items-center gap-2">
-      <button className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm transition-colors">
-        <FileDown size={14} className="text-red-400" /> PDF
-      </button>
-      <button className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-[.98] rounded-lg shadow-sm transition-all">
-        <FileSpreadsheet size={14} /> Excel
-      </button>
     </div>
   );
 }
@@ -235,16 +227,13 @@ export default function Relatorios() {
   const { products, sales, metrics } = useInventory();
   const [periodo, setPeriodo] = useState("30d");
 
-  // --- LÓGICA DE FILTRAGEM POR TEMPO (SÊNIOR) ---
   const salesFiltradas = useMemo(() => {
     const periodObj = PERIODOS.find((p) => p.value === periodo);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - (periodObj?.days || 30));
-
     return sales.filter((s) => new Date(s.data) >= cutoffDate);
   }, [sales, periodo]);
 
-  // --- KPI'S DINÂMICOS BASEADOS NO FILTRO ---
   const filteredMetrics = useMemo(() => {
     const faturamento = salesFiltradas.reduce(
       (acc, s) => acc + s.valorVenda * s.qtdVendida,
@@ -252,7 +241,6 @@ export default function Relatorios() {
     );
     const lucro = salesFiltradas.reduce((acc, s) => acc + s.lucroReal, 0);
 
-    // Performance por categoria (Filtrada)
     const mapaCat = {};
     salesFiltradas.forEach((sale) => {
       if (!mapaCat[sale.categoria]) {
@@ -266,13 +254,17 @@ export default function Relatorios() {
       mapaCat[sale.categoria].venda += sale.valorVenda * sale.qtdVendida;
     });
 
-    // Top Produtos (Filtrado)
     const mapaProd = {};
     salesFiltradas.forEach((sale) => {
       if (!mapaProd[sale.productId]) {
-        mapaProd[sale.productId] = { nome: sale.nome, lucroTotal: 0 };
+        mapaProd[sale.productId] = {
+          nome: sale.nome,
+          lucroTotal: 0,
+          qtdTotal: 0,
+        };
       }
       mapaProd[sale.productId].lucroTotal += sale.lucroReal;
+      mapaProd[sale.productId].qtdTotal += sale.qtdVendida;
     });
 
     const topSelling = Object.values(mapaProd)
@@ -288,7 +280,6 @@ export default function Relatorios() {
     };
   }, [salesFiltradas]);
 
-  // 3. MENOR GIRO / CAPITAL PRESO (Fica fora do filtro de tempo pois é estado atual do estoque)
   const topParado = useMemo(() => {
     return products
       .filter((p) => p.qtd > 0 && !sales.some((s) => s.productId === p.id))
@@ -304,6 +295,66 @@ export default function Relatorios() {
     [filteredMetrics.topSelling]
   );
 
+  // --- LÓGICA DE EXPORTAÇÃO ---
+
+  const handleExportExcel = () => {
+    const data = salesFiltradas.map((s) => ({
+      Data: new Date(s.data).toLocaleDateString("pt-BR"),
+      Produto: s.nome,
+      Categoria: s.categoria,
+      Quantidade: s.qtdVendida,
+      "Custo Unitário": s.custoUnitario,
+      "Preço Venda": s.valorVenda,
+      Faturamento: s.valorVenda * s.qtdVendida,
+      "Lucro Real": s.lucroReal,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Vendas");
+    XLSX.writeFile(wb, `Relatorio_Vendas_${periodo}.xlsx`);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const periodLabel = PERIODOS.find((p) => p.value === periodo).label;
+
+    doc.setFontSize(18);
+    doc.text("Relatório de Performance - Gestão de Estoque", 14, 20);
+
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(
+      `Período: ${periodLabel} | Gerado em: ${new Date().toLocaleString()}`,
+      14,
+      28
+    );
+
+    // Tabela de KPIs
+    doc.autoTable({
+      startY: 35,
+      head: [["KPI", "Valor"]],
+      body: [
+        ["Faturamento Total", brl(filteredMetrics.totalRevenue)],
+        ["Lucro Líquido", brl(filteredMetrics.totalProfit)],
+        ["Total de Vendas", filteredMetrics.salesCount.toString()],
+        ["Capital em Estoque (Atual)", brl(metrics.stockCost)],
+      ],
+      theme: "striped",
+      headStyles: { fillStyle: [31, 41, 55] },
+    });
+
+    // Tabela de Top Produtos
+    doc.text("Top 5 Produtos por Lucro", 14, doc.lastAutoTable.finalY + 10);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 15,
+      head: [["Produto", "Lucro Total"]],
+      body: filteredMetrics.topSelling.map((p) => [p.nome, brl(p.lucroTotal)]),
+    });
+
+    doc.save(`Relatorio_Performance_${periodo}.pdf`);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Cabeçalho */}
@@ -318,7 +369,20 @@ export default function Relatorios() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <PeriodSelector value={periodo} onChange={setPeriodo} />
-          <ExportButtons />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm transition-colors"
+            >
+              <FileDown size={14} className="text-red-400" /> PDF
+            </button>
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-[.98] rounded-lg shadow-sm transition-all"
+            >
+              <FileSpreadsheet size={14} /> Excel
+            </button>
+          </div>
         </div>
       </div>
 
@@ -508,7 +572,7 @@ export default function Relatorios() {
               ))
             ) : (
               <p className="p-10 text-center text-sm text-slate-400 italic">
-                Estoque saudável.
+                Estoquesaudável.
               </p>
             )}
           </div>
