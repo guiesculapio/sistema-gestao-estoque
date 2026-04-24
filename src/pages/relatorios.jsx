@@ -30,10 +30,10 @@ import {
 // ─────────────────────────────────────────────────────────────
 
 const PERIODOS = [
-  { label: "Últimos 7 dias", value: "7d" },
-  { label: "Últimos 30 dias", value: "30d" },
-  { label: "Últimos 90 dias", value: "90d" },
-  { label: "Este ano", value: "1y" },
+  { label: "Últimos 7 dias", value: "7d", days: 7 },
+  { label: "Últimos 30 dias", value: "30d", days: 30 },
+  { label: "Últimos 90 dias", value: "90d", days: 90 },
+  { label: "Este ano", value: "1y", days: 365 },
 ];
 
 const brl = (v) =>
@@ -235,43 +235,74 @@ export default function Relatorios() {
   const { products, sales, metrics } = useInventory();
   const [periodo, setPeriodo] = useState("30d");
 
-  // 1. PERFORMANCE POR CATEGORIA (MUDANÇA: Agora usa vendas reais do array sales)
-  const dadosCategoriaVendas = useMemo(() => {
-    const mapa = {};
-    sales.forEach((sale) => {
-      if (!mapa[sale.categoria]) {
-        mapa[sale.categoria] = {
+  // --- LÓGICA DE FILTRAGEM POR TEMPO (SÊNIOR) ---
+  const salesFiltradas = useMemo(() => {
+    const periodObj = PERIODOS.find((p) => p.value === periodo);
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - (periodObj?.days || 30));
+
+    return sales.filter((s) => new Date(s.data) >= cutoffDate);
+  }, [sales, periodo]);
+
+  // --- KPI'S DINÂMICOS BASEADOS NO FILTRO ---
+  const filteredMetrics = useMemo(() => {
+    const faturamento = salesFiltradas.reduce(
+      (acc, s) => acc + s.valorVenda * s.qtdVendida,
+      0
+    );
+    const lucro = salesFiltradas.reduce((acc, s) => acc + s.lucroReal, 0);
+
+    // Performance por categoria (Filtrada)
+    const mapaCat = {};
+    salesFiltradas.forEach((sale) => {
+      if (!mapaCat[sale.categoria]) {
+        mapaCat[sale.categoria] = {
           categoria: sale.categoria,
           custo: 0,
           venda: 0,
         };
       }
-      mapa[sale.categoria].custo += sale.custoUnitario * sale.qtdVendida;
-      mapa[sale.categoria].venda += sale.valorVenda * sale.qtdVendida;
+      mapaCat[sale.categoria].custo += sale.custoUnitario * sale.qtdVendida;
+      mapaCat[sale.categoria].venda += sale.valorVenda * sale.qtdVendida;
     });
-    return Object.values(mapa).sort((a, b) => b.venda - a.venda);
-  }, [sales]);
 
-  // 2. TOP MARGEM REAL (Quem trouxe mais lucro acumulado no período)
-  const topMargemReal = useMemo(() => {
-    return metrics.topSellingProducts || [];
-  }, [metrics]);
+    // Top Produtos (Filtrado)
+    const mapaProd = {};
+    salesFiltradas.forEach((sale) => {
+      if (!mapaProd[sale.productId]) {
+        mapaProd[sale.productId] = { nome: sale.nome, lucroTotal: 0 };
+      }
+      mapaProd[sale.productId].lucroTotal += sale.lucroReal;
+    });
 
-  const maxMargemReal = useMemo(
-    () =>
-      topMargemReal.length > 0
-        ? Math.max(...topMargemReal.map((p) => p.lucroTotal))
-        : 0,
-    [topMargemReal]
-  );
+    const topSelling = Object.values(mapaProd)
+      .sort((a, b) => b.lucroTotal - a.lucroTotal)
+      .slice(0, 5);
 
-  // 3. MENOR GIRO / CAPITAL PRESO (Produtos com estoque mas sem vendas)
+    return {
+      totalRevenue: faturamento,
+      totalProfit: lucro,
+      salesCount: salesFiltradas.length,
+      categories: Object.values(mapaCat).sort((a, b) => b.venda - a.venda),
+      topSelling,
+    };
+  }, [salesFiltradas]);
+
+  // 3. MENOR GIRO / CAPITAL PRESO (Fica fora do filtro de tempo pois é estado atual do estoque)
   const topParado = useMemo(() => {
     return products
       .filter((p) => p.qtd > 0 && !sales.some((s) => s.productId === p.id))
       .sort((a, b) => b.precoCusto * b.qtd - a.precoCusto * a.qtd)
       .slice(0, 6);
   }, [products, sales]);
+
+  const maxMargemReal = useMemo(
+    () =>
+      filteredMetrics.topSelling.length > 0
+        ? Math.max(...filteredMetrics.topSelling.map((p) => p.lucroTotal))
+        : 0,
+    [filteredMetrics.topSelling]
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -299,7 +330,8 @@ export default function Relatorios() {
               Vendas vs. Custo por Categoria
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Retorno real obtido em cada grupo de produtos
+              Resultados para o período de{" "}
+              {PERIODOS.find((p) => p.value === periodo).label}
             </p>
           </div>
           <div className="flex items-center gap-5 text-[11px] font-semibold">
@@ -315,10 +347,10 @@ export default function Relatorios() {
         </div>
 
         <div className="px-2 pt-4 pb-2">
-          {dadosCategoriaVendas.length > 0 ? (
+          {filteredMetrics.categories.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart
-                data={dadosCategoriaVendas}
+                data={filteredMetrics.categories}
                 margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
                 barCategoryGap="30%"
                 barGap={3}
@@ -352,20 +384,19 @@ export default function Relatorios() {
             </ResponsiveContainer>
           ) : (
             <div className="h-[240px] flex items-center justify-center text-slate-400 text-sm italic">
-              Realize vendas no PDV para visualizar os dados.
+              Nenhuma venda no período selecionado.
             </div>
           )}
         </div>
 
-        {/* Grid de categorias abaixo do gráfico - PRESERVADO */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border-t border-slate-100">
-          {dadosCategoriaVendas.map((cat) => {
+          {filteredMetrics.categories.map((cat) => {
             const lucro = cat.venda - cat.custo;
             const mg = cat.venda > 0 ? (lucro / cat.venda) * 100 : 0;
             return (
               <div
                 key={cat.categoria}
-                className="px-3.5 py-2.5 border-r last:border-r-0 border-b lg:border-b-0 border-slate-100"
+                className="px-3.5 py-2.5 border-r border-b border-slate-100"
               >
                 <p className="text-[10px] text-slate-400 truncate mb-0.5">
                   {cat.categoria}
@@ -377,7 +408,7 @@ export default function Relatorios() {
                   {brlK(cat.venda)}
                 </p>
                 <p
-                  className={`text-[10px] font-semibold mt-0.5 ${mg >= 30 ? "text-emerald-500" : mg >= 15 ? "text-amber-500" : "text-red-500"}`}
+                  className={`text-[10px] font-semibold mt-0.5 ${mg >= 30 ? "text-emerald-500" : "text-amber-500"}`}
                 >
                   {pct(mg)} margem
                 </p>
@@ -399,13 +430,13 @@ export default function Relatorios() {
                 Top Lucro Real
               </h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Produtos que mais geraram dinheiro em caixa
+                No período selecionado
               </p>
             </div>
           </div>
           <div className="divide-y divide-slate-100">
-            {topMargemReal.length > 0 ? (
-              topMargemReal.map((p, i) => (
+            {filteredMetrics.topSelling.length > 0 ? (
+              filteredMetrics.topSelling.map((p, i) => (
                 <div
                   key={p.nome}
                   className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50/60 transition-colors"
@@ -430,13 +461,13 @@ export default function Relatorios() {
               ))
             ) : (
               <p className="p-10 text-center text-sm text-slate-400 italic">
-                Sem vendas registradas.
+                Sem dados.
               </p>
             )}
           </div>
         </div>
 
-        {/* Card: Capital Preso (Sem Giro) */}
+        {/* Card: Capital Preso */}
         <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100">
             <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
@@ -447,7 +478,7 @@ export default function Relatorios() {
                 Capital Preso
               </h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Itens em estoque que ainda não venderam
+                Itens sem nenhuma venda registrada
               </p>
             </div>
           </div>
@@ -471,20 +502,20 @@ export default function Relatorios() {
                     <p className="text-xs font-bold text-slate-700 tabular-nums">
                       {brlK(p.precoCusto * p.qtd)}
                     </p>
-                    <p className="text-[10px] text-slate-400">valor de custo</p>
+                    <p className="text-[10px] text-slate-400">custo total</p>
                   </div>
                 </div>
               ))
             ) : (
               <p className="p-10 text-center text-sm text-slate-400 italic">
-                Tudo girando bem!
+                Estoque saudável.
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Resumo Financeiro Real - PRESERVADO E ATUALIZADO */}
+      {/* Resumo Financeiro Real */}
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-wrap gap-3">
           <div className="flex items-center gap-2.5">
@@ -496,13 +527,13 @@ export default function Relatorios() {
                 Resumo Financeiro & ROI
               </h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Performance baseada em fluxo de caixa real
+                Performance ajustada ao filtro temporal
               </p>
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
-            <Info size={11} className="text-slate-400" /> ROI = (Lucro Líquido /
-            Custo das Vendas) * 100
+            <Info size={11} className="text-slate-400" /> ROI do Período
+            Selecionado
           </div>
         </div>
 
@@ -511,79 +542,74 @@ export default function Relatorios() {
             <KpiCard
               label="Capital em Estoque"
               value={brlK(metrics.stockCost)}
-              sub="Valor parado"
+              sub="Valor total hoje"
               icon={Package}
               colorScheme="blue"
             />
             <KpiCard
-              label="Faturamento Real"
-              value={brlK(metrics.realRevenue)}
+              label="Faturamento Período"
+              value={brlK(filteredMetrics.totalRevenue)}
               sub="Total em vendas"
               icon={DollarSign}
               colorScheme="emerald"
               positive={true}
             />
             <KpiCard
-              label="Lucro Real"
-              value={brlK(metrics.realProfit)}
-              sub="Líquido no período"
+              label="Lucro Período"
+              value={brlK(filteredMetrics.totalProfit)}
+              sub="Líquido real"
               icon={TrendingUp}
               colorScheme="teal"
-              positive={metrics.realProfit > 0}
+              positive={filteredMetrics.totalProfit > 0}
             />
             <KpiCard
               label="Vendas Totais"
-              value={metrics.totalSalesCount}
-              sub="Transações feitas"
+              value={filteredMetrics.salesCount}
+              sub="Transações"
               icon={ShoppingCart}
               colorScheme="violet"
             />
           </div>
 
-          {/* Barra de Composição - PRESERVADA */}
           <div className="rounded-xl bg-slate-50 border border-slate-200/60 p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-slate-600">
-                Eficiência de Conversão (Faturamento vs Estoque)
+                Eficiência de Conversão (Faturamento Período vs Estoque Atual)
               </p>
               <p className="text-[11px] text-slate-400 tabular-nums">
-                {brlK(metrics.realRevenue)} faturado
+                {brlK(filteredMetrics.totalRevenue)} faturado
               </p>
             </div>
             <div className="flex h-6 rounded-xl overflow-hidden gap-px mb-3 bg-slate-200">
-              {metrics.realRevenue > 0 && (
-                <>
-                  <div
-                    className="bg-blue-400 flex items-center justify-center transition-all duration-700"
-                    style={{
-                      width: `${(metrics.stockCost / (metrics.stockCost + metrics.realRevenue)) * 100}%`,
-                    }}
-                  >
-                    <span className="text-[9px] font-bold text-white px-1 truncate hidden sm:block">
-                      Estoque
-                    </span>
-                  </div>
-                  <div className="bg-emerald-400 flex-1 flex items-center justify-center transition-all duration-700">
-                    <span className="text-[9px] font-bold text-white px-1 truncate hidden sm:block">
-                      Vendas
-                    </span>
-                  </div>
-                </>
-              )}
+              <div
+                className="bg-blue-400 flex items-center justify-center transition-all duration-700"
+                style={{
+                  width: `${(metrics.stockCost / (metrics.stockCost + filteredMetrics.totalRevenue)) * 100}%`,
+                }}
+              >
+                <span className="text-[9px] font-bold text-white px-1 truncate hidden sm:block">
+                  Estoque
+                </span>
+              </div>
+              <div className="bg-emerald-400 flex-1 flex items-center justify-center transition-all duration-700">
+                <span className="text-[9px] font-bold text-white px-1 truncate hidden sm:block">
+                  Vendas no Período
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-6 text-xs text-slate-500">
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-blue-400" /> Custo em
-                Prateleira —{" "}
+                <span className="w-2.5 h-2.5 rounded-sm bg-blue-400" /> Capital
+                Parado —{" "}
                 <strong className="text-blue-600">
                   {brlK(metrics.stockCost)}
                 </strong>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400" /> Total
-                Vendido —{" "}
+                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400" />{" "}
+                Convertido em Venda —{" "}
                 <strong className="text-emerald-600">
-                  {brlK(metrics.realRevenue)}
+                  {brlK(filteredMetrics.totalRevenue)}
                 </strong>
               </span>
             </div>
