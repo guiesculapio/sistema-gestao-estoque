@@ -3,6 +3,7 @@ import MainLayout from "./components/layout/mainlayout";
 import Dashboard from "./pages/dashboard";
 import Inventario from "./pages/inventario";
 import Relatorios from "./pages/relatorios";
+import Vendas from "./pages/vendas"; // 1. Importação da nova página
 import { InventoryProvider } from "./context/InventoryContext";
 
 function App() {
@@ -15,7 +16,13 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="inventario" element={<Inventario />} />
+
+            {/* 2. Nova Rota de Vendas registrada dentro do Layout principal */}
+            <Route path="vendas" element={<Vendas />} />
+
             <Route path="relatorios" element={<Relatorios />} />
+
+            {/* Redirecionamento para rotas não encontradas */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

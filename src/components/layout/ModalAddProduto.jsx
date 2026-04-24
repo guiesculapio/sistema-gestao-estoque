@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { X, Save } from "lucide-react";
-// AJUSTE: Voltamos duas pastas (../../) para chegar em src e entrar em context
+import { X, Save, Barcode } from "lucide-react";
+// AJUSTE: Mantido o caminho das duas pastas para chegar em context
 import { useInventory } from "../../context/InventoryContext";
 
 export default function ModalAddProduto({ isOpen, onClose }) {
   const { addProduct } = useInventory();
 
   const [formData, setFormData] = useState({
+    barcode: "", // NOVO CAMPO
     nome: "",
     categoria: "",
     qtd: 0,
@@ -19,7 +20,7 @@ export default function ModalAddProduto({ isOpen, onClose }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Lógica de status automática
+    // Lógica de status automática (MANTIDA)
     const statusFinal =
       formData.qtd <= 0
         ? "esgotado"
@@ -29,8 +30,9 @@ export default function ModalAddProduto({ isOpen, onClose }) {
 
     addProduct({ ...formData, status: statusFinal });
 
-    // Limpa e fecha
+    // Limpa e fecha (ATUALIZADO para limpar o barcode também)
     setFormData({
+      barcode: "",
       nome: "",
       categoria: "",
       qtd: 0,
@@ -56,6 +58,24 @@ export default function ModalAddProduto({ isOpen, onClose }) {
 
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* CAMPO NOVO: CÓDIGO DE BARRAS */}
+          <div>
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase mb-1">
+              <Barcode size={14} className="text-slate-400" />
+              Código de Barras / SKU
+            </label>
+            <input
+              required
+              type="text"
+              placeholder="Bipe o código ou digite..."
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400 outline-none transition-all text-sm font-mono"
+              value={formData.barcode}
+              onChange={(e) =>
+                setFormData({ ...formData, barcode: e.target.value })
+              }
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">
               Nome do Produto

@@ -1,13 +1,21 @@
 import { NavLink } from "react-router-dom";
-import { Package, Home, BarChart2, Settings, Layers } from "lucide-react";
+import {
+  Package,
+  Home,
+  BarChart2,
+  Settings,
+  Layers,
+  ShoppingCart,
+} from "lucide-react";
 
 /**
  * NAV_ITEMS — Itens de navegação principal.
- * O link de Relatórios já está aqui e apontando para "/relatorios".
+ * Adicionado: Rota "/vendas" com ícone ShoppingCart.
  */
 const NAV_ITEMS = [
   { to: "/dashboard", icon: Home, label: "Dashboard" },
   { to: "/inventario", icon: Package, label: "Inventário" },
+  { to: "/vendas", icon: ShoppingCart, label: "Vendas" }, // <-- NOVO ITEM
   { to: "/relatorios", icon: BarChart2, label: "Relatórios" },
 ];
 
@@ -59,7 +67,7 @@ export default function Sidebar() {
         select-none
       "
     >
-      {/* ── Logotipo / Marca (Atualizado para o seu conceito de SaaS) ── */}
+      {/* ── Logotipo / Marca (Copiloto SaaS) ── */}
       <div className="flex items-center gap-2.5 px-5 h-16 border-b border-slate-700/50">
         <div className="w-7 h-7 rounded-md bg-teal-500 flex items-center justify-center flex-shrink-0">
           <Layers size={15} className="text-slate-900" strokeWidth={2.5} />
