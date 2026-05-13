@@ -6,8 +6,46 @@ import {
   useCallback,
   useEffect,
 } from "react";
+import {
+  createProduct as supabaseCreateProduct,
+  createInventoryMovement,
+} from "../lib/supabaseClient";
 
 export const InventoryContext = createContext();
+
+// ─────────────────────────────────────────────────────────────
+// Tradução entre o formato PT do Context e o schema EN do Supabase.
+// Mantém a API externa em PT para não quebrar consumidores.
+// ─────────────────────────────────────────────────────────────
+function toSupabaseProduct(p) {
+  return {
+    name: p.nome,
+    category: p.categoria || "Geral",
+    barcode: p.barcode || null,
+    sku: p.sku || null,
+    current_stock: Number.parseInt(p.qtd, 10) || 0,
+    cost_price:
+      p.precoCusto != null && p.precoCusto !== ""
+        ? Number.parseFloat(p.precoCusto)
+        : null,
+    price: Number.parseFloat(p.precoVenda) || 0,
+    min_stock: 5,
+    status: p.status || "em_estoque",
+  };
+}
+
+function fromSupabaseProduct(row) {
+  return {
+    id: row.id,
+    barcode: row.barcode,
+    nome: row.name,
+    categoria: row.category,
+    qtd: row.current_stock,
+    precoCusto: row.cost_price != null ? Number(row.cost_price) : 0,
+    precoVenda: Number(row.price),
+    status: row.status,
+  };
+}
 
 export function InventoryProvider({ children }) {
   // Inicialização do estado com persistência local
@@ -54,8 +92,23 @@ export function InventoryProvider({ children }) {
   }, [sales]);
 
   // --- FUNÇÕES CRUD ---
-  const addProduct = useCallback((newProduct) => {
-    setProducts((prev) => [...prev, { ...newProduct, id: Date.now() }]);
+  const addProduct = useCallback(async (newProduct) => {
+    // 1) Persistir no Supabase
+    const payload = toSupabaseProduct(newProduct);
+    const saved = await supabaseCreateProduct(payload);
+
+    if (!saved) {
+      console.error(
+        "❌ addProduct: falha ao persistir no Supabase. Estado local NÃO foi atualizado."
+      );
+      return { success: false, error: "Falha ao salvar produto no banco" };
+    }
+
+    // 2) Adotar o id real gerado pelo banco e atualizar estado local
+    const local = fromSupabaseProduct(saved);
+    setProducts((prev) => [...prev, local]);
+
+    return { success: true, product: local };
   }, []);
 
   const updateProduct = useCallback((id, updatedData) => {
@@ -68,12 +121,40 @@ export function InventoryProvider({ children }) {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  // --- FUNÇÃO DE VENDA (COM REGISTRO DE HISTÓRICO) ---
-  const sellItems = useCallback((itemsToSell) => {
+  // --- FUNÇÃO DE VENDA (PERSISTE EM inventory_movements + ESTADO LOCAL) ---
+  const sellItems = useCallback(async (itemsToSell) => {
+    const sharedSaleId = `SALE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const timestamp = new Date().toISOString();
 
-    const newSalesEntry = itemsToSell.map((item) => ({
-      saleId: `SALE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    // 1) Inserir cada item como movimento OUT no Supabase.
+    // O trigger do banco decrementa products.current_stock automaticamente,
+    // e a CHECK constraint impede estoque negativo.
+    const persisted = [];
+    for (const item of itemsToSell) {
+      const movement = await createInventoryMovement({
+        product_id: item.id,
+        type: "OUT",
+        quantity: item.cartQty,
+        reason: "venda",
+        sale_id: sharedSaleId,
+      });
+
+      if (movement) {
+        persisted.push(item);
+      } else {
+        console.error(
+          `❌ sellItems: falha ao registrar saída de ${item.nome} (id ${item.id}). Item ignorado no estado local.`
+        );
+      }
+    }
+
+    if (persisted.length === 0) {
+      return { success: false, error: "Nenhuma venda foi persistida" };
+    }
+
+    // 2) Atualizar estado local somente com os itens efetivamente persistidos
+    const newSalesEntry = persisted.map((item) => ({
+      saleId: sharedSaleId,
       productId: item.id,
       nome: item.nome,
       categoria: item.categoria,
@@ -88,7 +169,7 @@ export function InventoryProvider({ children }) {
 
     setProducts((prevProducts) =>
       prevProducts.map((product) => {
-        const itemInCart = itemsToSell.find((item) => item.id === product.id);
+        const itemInCart = persisted.find((item) => item.id === product.id);
         if (itemInCart) {
           const novaQtd = Math.max(0, (product.qtd || 0) - itemInCart.cartQty);
           return {
@@ -105,6 +186,13 @@ export function InventoryProvider({ children }) {
         return product;
       })
     );
+
+    return {
+      success: true,
+      saleId: sharedSaleId,
+      persistedCount: persisted.length,
+      requestedCount: itemsToSell.length,
+    };
   }, []);
 
   // --- MÉTRICAS GLOBAIS ---
