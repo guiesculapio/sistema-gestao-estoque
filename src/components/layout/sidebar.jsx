@@ -74,10 +74,10 @@ export default function Sidebar() {
         </div>
         <div className="leading-tight">
           <p className="text-white text-sm font-semibold tracking-tight">
-            Copiloto SaaS
+            Crowned
           </p>
           <p className="text-slate-500 text-[10px] font-mono uppercase tracking-widest">
-            v1.0.0
+            v1.0
           </p>
         </div>
       </div>
@@ -99,13 +99,11 @@ export default function Sidebar() {
         {/* Card de usuário */}
         <div className="mt-3 flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-800/60 border border-slate-700/40">
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-[10px] font-bold text-white">JD</span>
+            <span className="text-[10px] font-bold text-white">HG</span>
           </div>
           <div className="leading-tight min-w-0">
-            <p className="text-slate-200 text-xs font-medium truncate">
-              João Dono
-            </p>
-            <p className="text-slate-500 text-[10px] truncate">Plano Pro</p>
+            <p className="text-slate-200 text-xs font-medium truncate">Hugo</p>
+            <p className="text-slate-500 text-[10px] truncate"></p>
           </div>
         </div>
       </div>

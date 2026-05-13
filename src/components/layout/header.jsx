@@ -65,13 +65,13 @@ export default function Header() {
           {/* Avatar */}
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center flex-shrink-0 shadow-sm">
             <span className="text-[10px] font-bold text-white leading-none">
-              JD
+              CD
             </span>
           </div>
 
           {/* Nome */}
           <span className="hidden md:block text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
-            João Dono
+            Cronwed
           </span>
 
           <ChevronDown
