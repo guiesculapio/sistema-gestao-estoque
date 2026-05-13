@@ -51,30 +51,7 @@ export function InventoryProvider({ children }) {
   // Inicialização do estado com persistência local
   const [products, setProducts] = useState(() => {
     const saved = localStorage.getItem("@inventory_products");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          {
-            id: 1,
-            barcode: "789001",
-            nome: "Cabo HDMI 2.1 2m",
-            categoria: "Cabos",
-            qtd: 10,
-            precoCusto: 28.0,
-            precoVenda: 49.9,
-            status: "em_estoque",
-          },
-          {
-            id: 2,
-            barcode: "789002",
-            nome: "Cadeira Ergonômica Flexform",
-            categoria: "Mobiliário",
-            qtd: 5,
-            precoCusto: 980.0,
-            precoVenda: 1850.0,
-            status: "em_estoque",
-          },
-        ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [sales, setSales] = useState(() => {
