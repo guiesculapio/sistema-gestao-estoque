@@ -168,6 +168,50 @@ export async function fetchProductMovements(productId) {
 }
 
 /**
+ * Registrar um evento de log de produto (ENTRADA / SAIDA / ALTERACAO)
+ * @param {{product_id: number, type: 'ENTRADA'|'SAIDA'|'ALTERACAO', quantity?: number}} log
+ * @returns {Promise<Object|null>}
+ */
+export async function createInventoryLog({ product_id, type, quantity = 0 }) {
+  try {
+    const { data, error } = await supabase
+      .from("inventory_logs")
+      .insert([{ product_id, type, quantity }])
+      .select();
+
+    if (error) throw error;
+    return data?.[0] || null;
+  } catch (err) {
+    console.error("❌ Erro ao registrar log de produto:", err.message);
+    return null;
+  }
+}
+
+/**
+ * Buscar o histórico (log de auditoria) de um produto, mais recente primeiro
+ * @param {number} productId
+ * @returns {Promise<Array>}
+ */
+export async function fetchProductHistory(productId) {
+  try {
+    const { data, error } = await supabase
+      .from("inventory_logs")
+      .select("id, type, quantity, created_at")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error(
+      `❌ Erro ao buscar histórico do produto ${productId}:`,
+      err.message
+    );
+    return [];
+  }
+}
+
+/**
  * Buscar todo o histórico de saídas (vendas)
  * Retorna product_id para que o consumidor cruze com a lista de produtos
  * em memória (evita depender do embed PostgREST, que pode falhar se a

@@ -12,6 +12,8 @@ import {
   updateProduct as supabaseUpdateProduct,
   deleteProduct as supabaseDeleteProduct,
   createInventoryMovement,
+  createInventoryLog,
+  fetchProductHistory as supabaseFetchProductHistory,
 } from "../lib/supabaseClient";
 
 export const InventoryContext = createContext();
@@ -102,6 +104,13 @@ export function InventoryProvider({ children }) {
     const local = fromSupabaseProduct(saved);
     setProducts((prev) => [...prev, local]);
 
+    // Log de auditoria: criação conta como ENTRADA do estoque inicial.
+    await createInventoryLog({
+      product_id: local.id,
+      type: "ENTRADA",
+      quantity: local.qtd || 0,
+    });
+
     return { success: true, product: local };
   }, []);
 
@@ -117,7 +126,22 @@ export function InventoryProvider({ children }) {
     }
 
     const local = fromSupabaseProduct(saved);
-    setProducts((prev) => prev.map((p) => (p.id === id ? local : p)));
+
+    // Calcula delta de qtd usando o estado anterior (snapshot dentro do updater).
+    let qtdDelta = 0;
+    setProducts((prev) => {
+      if ("qtd" in updatedData) {
+        const old = prev.find((p) => p.id === id);
+        if (old) qtdDelta = (local.qtd || 0) - (old.qtd || 0);
+      }
+      return prev.map((p) => (p.id === id ? local : p));
+    });
+
+    await createInventoryLog({
+      product_id: id,
+      type: "ALTERACAO",
+      quantity: qtdDelta,
+    });
 
     return { success: true, product: local };
   }, []);
@@ -166,6 +190,17 @@ export function InventoryProvider({ children }) {
     if (persisted.length === 0) {
       return { success: false, error: "Nenhuma venda foi persistida" };
     }
+
+    // Log de auditoria: cada item persistido vira uma SAIDA no inventory_logs.
+    await Promise.all(
+      persisted.map((item) =>
+        createInventoryLog({
+          product_id: item.id,
+          type: "SAIDA",
+          quantity: item.cartQty,
+        })
+      )
+    );
 
     // 2) Atualizar estado local somente com os itens efetivamente persistidos
     const newSalesEntry = persisted.map((item) => ({
@@ -239,6 +274,11 @@ export function InventoryProvider({ children }) {
     };
   }, [products, sales]);
 
+  const fetchProductHistory = useCallback(
+    (id) => supabaseFetchProductHistory(id),
+    []
+  );
+
   return (
     <InventoryContext.Provider
       value={{
@@ -249,6 +289,7 @@ export function InventoryProvider({ children }) {
         deleteProduct,
         sellItems,
         metrics,
+        fetchProductHistory,
       }}
     >
       {children}

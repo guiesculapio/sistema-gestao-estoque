@@ -9,12 +9,14 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
+  History,
 } from "lucide-react";
 
 // Hook do contexto
 import { useInventory } from "../context/InventoryContext";
-// Componente do Modal
+// Componentes de Modal
 import ModalAddProduto from "../components/layout/ModalAddProduto";
+import ModalHistorico from "../components/layout/ModalHistorico";
 
 // ─────────────────────────────────────────────
 // 1. HELPERS
@@ -116,7 +118,7 @@ function Th({ children, column, sortConfig, onSort, className = "" }) {
   );
 }
 
-function ProdutoRow({ produto, onEdit, onDelete }) {
+function ProdutoRow({ produto, onEdit, onDelete, onHistory }) {
   const valorTotal = produto.qtd * produto.precoVenda;
   return (
     <tr className="group border-b border-slate-100 last:border-0 hover:bg-slate-50/70 transition-colors duration-100">
@@ -164,13 +166,22 @@ function ProdutoRow({ produto, onEdit, onDelete }) {
       <td className="px-4 py-3.5">
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           <button
+            onClick={() => onHistory(produto)}
+            title="Ver histórico"
+            className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+          >
+            <History size={14} />
+          </button>
+          <button
             onClick={() => onEdit(produto)}
+            title="Editar produto"
             className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-teal-600 hover:bg-teal-50"
           >
             <Pencil size={14} />
           </button>
           <button
             onClick={() => onDelete(produto.id, produto.nome)}
+            title="Excluir produto"
             className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50"
           >
             <Trash2 size={14} />
@@ -218,6 +229,7 @@ export default function Inventario() {
   const [sortConfig, setSortConfig] = useState({ key: "nome", dir: "asc" });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null); // Estado para o produto em edição
+  const [historyProduct, setHistoryProduct] = useState(null); // Produto selecionado para histórico
 
   // Dados e funções do Contexto
   const { products: produtos, deleteProduct } = useInventory();
@@ -263,6 +275,14 @@ export default function Inventario() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null); // Limpa o produto em edição ao fechar
+  };
+
+  const handleHistory = (produto) => {
+    setHistoryProduct(produto);
+  };
+
+  const handleCloseHistory = () => {
+    setHistoryProduct(null);
   };
 
   const handleDelete = (id, nome) => {
@@ -414,6 +434,7 @@ export default function Inventario() {
                     produto={produto}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onHistory={handleHistory}
                   />
                 ))
               ) : (
@@ -469,6 +490,13 @@ export default function Inventario() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         productToEdit={editingProduct} // Passa o produto se estiver editando
+      />
+
+      {/* MODAL DE HISTÓRICO (log de auditoria) */}
+      <ModalHistorico
+        isOpen={!!historyProduct}
+        onClose={handleCloseHistory}
+        product={historyProduct}
       />
     </div>
   );

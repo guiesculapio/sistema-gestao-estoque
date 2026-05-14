@@ -192,7 +192,29 @@ ORDER BY p.name;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 7. DADOS DE EXEMPLO (Descomente para testar)
+-- 7. TABELA: INVENTORY_LOGS (log de auditoria de produtos)
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Registra Alteração/Entrada/Saída para cada produto. Separada de
+-- inventory_movements: aqui também entram updates de cadastro (ALTERACAO),
+-- não apenas movimentações de estoque.
+
+CREATE TABLE IF NOT EXISTS inventory_logs (
+  id BIGSERIAL PRIMARY KEY,
+  product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  type VARCHAR(20) NOT NULL CHECK (type IN ('ENTRADA', 'SAIDA', 'ALTERACAO')),
+  quantity INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_inventory_logs_product_id ON inventory_logs(product_id);
+CREATE INDEX idx_inventory_logs_created_at ON inventory_logs(created_at);
+
+COMMENT ON TABLE inventory_logs IS 'Log de auditoria de produtos: criações (ENTRADA), vendas/saídas (SAIDA) e edições (ALTERACAO).';
+COMMENT ON COLUMN inventory_logs.quantity IS 'Quantidade envolvida no evento. Para ALTERACAO, pode ser 0 ou o delta de estoque, conforme o caso.';
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 8. DADOS DE EXEMPLO (Descomente para testar)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- INSERT INTO products (name, description, sku, barcode, category, price, cost_price, current_stock, min_stock)
