@@ -7,7 +7,10 @@ import {
   useEffect,
 } from "react";
 import {
+  fetchProducts,
   createProduct as supabaseCreateProduct,
+  updateProduct as supabaseUpdateProduct,
+  deleteProduct as supabaseDeleteProduct,
   createInventoryMovement,
 } from "../lib/supabaseClient";
 
@@ -47,30 +50,45 @@ function fromSupabaseProduct(row) {
   };
 }
 
+// Tradução parcial PT → EN para updates (não sobrescreve campos ausentes).
+function toSupabaseUpdates(updates) {
+  const payload = {};
+  if ("nome" in updates) payload.name = updates.nome;
+  if ("categoria" in updates) payload.category = updates.categoria;
+  if ("barcode" in updates) payload.barcode = updates.barcode || null;
+  if ("sku" in updates) payload.sku = updates.sku || null;
+  if ("qtd" in updates)
+    payload.current_stock = Number.parseInt(updates.qtd, 10) || 0;
+  if ("precoCusto" in updates)
+    payload.cost_price =
+      updates.precoCusto != null && updates.precoCusto !== ""
+        ? Number.parseFloat(updates.precoCusto)
+        : null;
+  if ("precoVenda" in updates)
+    payload.price = Number.parseFloat(updates.precoVenda) || 0;
+  if ("status" in updates) payload.status = updates.status;
+  return payload;
+}
+
 export function InventoryProvider({ children }) {
-  // Inicialização do estado com persistência local
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem("@inventory_products");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [products, setProducts] = useState([]);
+  const [sales, setSales] = useState([]);
 
-  const [sales, setSales] = useState(() => {
-    const saved = localStorage.getItem("@inventory_sales");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Persistência automática
+  // Carregar produtos do Supabase na montagem
   useEffect(() => {
-    localStorage.setItem("@inventory_products", JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem("@inventory_sales", JSON.stringify(sales));
-  }, [sales]);
+    let cancelled = false;
+    (async () => {
+      const rows = await fetchProducts();
+      if (cancelled) return;
+      setProducts(rows.map(fromSupabaseProduct));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // --- FUNÇÕES CRUD ---
   const addProduct = useCallback(async (newProduct) => {
-    // 1) Persistir no Supabase
     const payload = toSupabaseProduct(newProduct);
     const saved = await supabaseCreateProduct(payload);
 
@@ -81,21 +99,41 @@ export function InventoryProvider({ children }) {
       return { success: false, error: "Falha ao salvar produto no banco" };
     }
 
-    // 2) Adotar o id real gerado pelo banco e atualizar estado local
     const local = fromSupabaseProduct(saved);
     setProducts((prev) => [...prev, local]);
 
     return { success: true, product: local };
   }, []);
 
-  const updateProduct = useCallback((id, updatedData) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p))
-    );
+  const updateProduct = useCallback(async (id, updatedData) => {
+    const payload = toSupabaseUpdates(updatedData);
+    const saved = await supabaseUpdateProduct(id, payload);
+
+    if (!saved) {
+      console.error(
+        `❌ updateProduct: falha ao atualizar produto ${id} no Supabase. Estado local NÃO foi atualizado.`
+      );
+      return { success: false, error: "Falha ao atualizar produto no banco" };
+    }
+
+    const local = fromSupabaseProduct(saved);
+    setProducts((prev) => prev.map((p) => (p.id === id ? local : p)));
+
+    return { success: true, product: local };
   }, []);
 
-  const deleteProduct = useCallback((id) => {
+  const deleteProduct = useCallback(async (id) => {
+    const ok = await supabaseDeleteProduct(id);
+
+    if (!ok) {
+      console.error(
+        `❌ deleteProduct: falha ao excluir produto ${id} no Supabase. Estado local NÃO foi atualizado.`
+      );
+      return { success: false, error: "Falha ao excluir produto no banco" };
+    }
+
     setProducts((prev) => prev.filter((p) => p.id !== id));
+    return { success: true };
   }, []);
 
   // --- FUNÇÃO DE VENDA (PERSISTE EM inventory_movements + ESTADO LOCAL) ---
