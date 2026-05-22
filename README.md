@@ -1,16 +1,69 @@
-# React + Vite
+Smart Inventory Dashboard 📦
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+O Smart Inventory Dashboard é uma solução de gestão de estoque desenhada para eliminar ineficiências operacionais como quebras de estoque e perdas financeiras. Desenvolvido para oferecer visão estratégica de negócio, o sistema transforma dados brutos em decisões inteligentes, permitindo que lojistas identifiquem margens de lucro, capital imobilizado e produtos com performance crítica em tempo real.
 
-Currently, two official plugins are available:
+🚀 O Problema
+Muitos pequenos negócios operam no "achismo" ou em planilhas manuais propensas a erros. Este projeto centraliza a gestão para resolver:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Falta de visibilidade: Incapacidade de prever faturamento real.
 
-## React Compiler
+Perdas operacionais: Dificuldade em rastrear movimentações e histórico de produtos.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Margens ocultas: Falta de análise sobre quais categorias trazem lucro versus quais consomem capital (Capital Preso).
 
-## Expanding the ESLint configuration
+🛠️ Tecnologias
+O projeto foi construído com uma arquitetura focada em performance e escalabilidade:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Frontend: React.js, Tailwind CSS (interface responsiva e limpa).
+
+Backend: Supabase (Backend-as-a-Service, com foco em segurança RLS e tempo real).
+
+Deploy: Vercel (CI/CD contínuo).
+
+✨ Funcionalidades Principais
+Dashboard Dinâmico: Visualização imediata de faturamento potencial, lucro previsto e alerta de itens críticos.
+
+Gestão de Inventário: Cadastro intuitivo com cálculo automático de margens de lucro entre custo e venda.
+
+Frente de Caixa (PDV): Interface otimizada para registro rápido de vendas com atualização em tempo real dos relatórios.
+
+Relatórios de Performance: Análise financeira avançada, cruzando dados de custo vs. venda e identificando capital imobilizado.
+
+🧠 Desafios Técnicos
+O maior desafio deste projeto não foi apenas a interface, mas a implementação da lógica de negócio:
+
+Garantir a integridade dos dados ao calcular margens de lucro e movimentações de estoque em tempo real.
+
+Estruturar o banco de dados relacional para que o cálculo de "Capital Preso" e "ROI" fosse performático, evitando latência no frontend.
+
+A separação de responsabilidades (Frontend vs. Backend) para garantir que a lógica de cálculo não ficasse exposta ou vulnerável.
+
+📸 Preview
+![Preview do Smart Inventory Dashboard](./src/assets/Inventario.png)
+
+🛣️ Roadmap (Próximos Passos)
+O projeto está em evolução para se tornar uma plataforma SaaS completa:
+
+Autenticação: Implementação de login e perfis de acesso.
+
+Dashboard de Usuário: Painéis personalizados por nível de acesso.
+
+Expansão SaaS: Funcionalidades multi-tenant para múltiplos clientes.
+
+💡 Como rodar localmente
+Clone este repositório:
+
+Bash
+git clone [https://github.com/guiesculapio/sistema-gestao-estoque.git]  
+Instale as dependências:
+
+Bash
+npm install
+Configure o arquivo .env com suas credenciais do Supabase.
+
+Execute o projeto:
+
+Bash
+npm run dev
+
+Desenvolvido por Guilherme Esculapio
