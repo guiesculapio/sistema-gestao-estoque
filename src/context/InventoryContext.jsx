@@ -25,7 +25,7 @@ export const InventoryContext = createContext();
 function toSupabaseProduct(p) {
   return {
     name: p.nome,
-    category: p.categoria || "Geral",
+    category_id: p.categoria_id != null ? Number(p.categoria_id) : null,
     barcode: p.barcode || null,
     sku: p.sku || null,
     current_stock: Number.parseInt(p.qtd, 10) || 0,
@@ -44,7 +44,8 @@ function fromSupabaseProduct(row) {
     id: row.id,
     barcode: row.barcode,
     nome: row.name,
-    categoria: row.category,
+    categoria_id: row.category_id ?? null,
+    categoria: row.categories?.name ?? null,
     qtd: row.current_stock,
     precoCusto: row.cost_price != null ? Number(row.cost_price) : 0,
     precoVenda: Number(row.price),
@@ -56,7 +57,9 @@ function fromSupabaseProduct(row) {
 function toSupabaseUpdates(updates) {
   const payload = {};
   if ("nome" in updates) payload.name = updates.nome;
-  if ("categoria" in updates) payload.category = updates.categoria;
+  if ("categoria_id" in updates)
+    payload.category_id =
+      updates.categoria_id != null ? Number(updates.categoria_id) : null;
   if ("barcode" in updates) payload.barcode = updates.barcode || null;
   if ("sku" in updates) payload.sku = updates.sku || null;
   if ("qtd" in updates)

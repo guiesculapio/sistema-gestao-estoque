@@ -31,7 +31,7 @@ export async function fetchProducts() {
   try {
     const { data, error } = await supabase
       .from("products")
-      .select("*")
+      .select("*, categories(id, name)")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -40,6 +40,75 @@ export async function fetchProducts() {
     console.error("❌ Erro ao buscar produtos:", err.message);
     return [];
   }
+}
+
+/**
+ * Buscar todas as categorias do banco de dados
+ * RLS filtra automaticamente pelas categorias do usuário logado.
+ * @returns {Promise<Array<{id:number,name:string}>>} Lista de categorias ou [] em caso de erro
+ */
+export async function fetchCategories() {
+  try {
+    const { data, error } = await supabase
+      .from("categories")
+      .select("id, name")
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("❌ Erro ao buscar categorias:", err.message);
+    return [];
+  }
+}
+
+/**
+ * Criar uma nova categoria.
+ * Envia user_id explicitamente a partir da sessão ativa para garantir
+ * que o INSERT satisfaça a policy RLS (auth.uid() = user_id) mesmo se
+ * o DEFAULT auth.uid() não estiver expandindo no contexto da request.
+ * @param {string} name
+ * @returns {Promise<{category:{id:number,name:string}|null, error:string|null}>}
+ */
+export async function createCategory(name) {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    console.error(
+      "❌ createCategory abortado: sem sessão ativa.",
+      sessionError
+    );
+    return {
+      category: null,
+      error: "Sessão expirada. Faça logout e login novamente.",
+    };
+  }
+
+  const userId = session.user.id;
+  console.log("🔍 createCategory: usando user_id =", userId);
+
+  const { data, error } = await supabase
+    .from("categories")
+    .insert([{ name: name.trim(), user_id: userId }])
+    .select("id, name");
+
+  if (error) {
+    console.error("❌ Erro ao criar categoria:", error.message, error);
+    return { category: null, error: error.message };
+  }
+
+  const category = data?.[0] || null;
+  if (!category) {
+    const msg =
+      "INSERT passou mas SELECT não retornou a linha — verifique a policy SELECT de categories";
+    console.error("❌", msg);
+    return { category: null, error: msg };
+  }
+
+  return { category, error: null };
 }
 
 /**

@@ -1,14 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Loader } from "lucide-react";
 import MainLayout from "./components/layout/mainlayout";
 import Dashboard from "./pages/dashboard";
 import Inventario from "./pages/inventario";
 import Relatorios from "./pages/relatorios";
-import Vendas from "./pages/vendas"; // 1. Importação da nova página
+import Vendas from "./pages/vendas";
+import Login from "./pages/Login";
 import { InventoryProvider } from "./context/InventoryContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
-function App() {
+function AuthenticatedApp() {
   return (
-    // O Provedor de dados deve ficar no topo de tudo
     <InventoryProvider>
       <BrowserRouter>
         <Routes>
@@ -16,18 +18,35 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="inventario" element={<Inventario />} />
-
-            {/* 2. Nova Rota de Vendas registrada dentro do Layout principal */}
             <Route path="vendas" element={<Vendas />} />
-
             <Route path="relatorios" element={<Relatorios />} />
-
-            {/* Redirecionamento para rotas não encontradas */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>
     </InventoryProvider>
+  );
+}
+
+function AppGate() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader size={28} className="animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  return session ? <AuthenticatedApp /> : <Login />;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppGate />
+    </AuthProvider>
   );
 }
 
