@@ -62,14 +62,17 @@ export default function Sidebar() {
   return (
     <aside
       className="
-        w-60 flex-shrink-0 flex flex-col h-screen
-        bg-slate-900 border-r border-slate-700/50
+        w-60 flex-shrink-0 flex flex-col
+        h-[calc(100vh-1.5rem)] sticky top-3
+        m-3
+        bg-slate-900 border border-slate-700/50
+        rounded-2xl shadow-xl shadow-slate-900/10
         select-none
       "
     >
       {/* ── Logotipo / Marca (Copiloto SaaS) ── */}
       <div className="flex items-center gap-2.5 px-5 h-16 border-b border-slate-700/50">
-        <div className="w-7 h-7 rounded-md bg-teal-500 flex items-center justify-center flex-shrink-0">
+        <div className="w-7 h-7 rounded-lg bg-teal-500 flex items-center justify-center flex-shrink-0">
           <Layers size={15} className="text-slate-900" strokeWidth={2.5} />
         </div>
         <div className="leading-tight">

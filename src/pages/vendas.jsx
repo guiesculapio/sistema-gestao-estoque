@@ -218,7 +218,7 @@ export default function Vendas() {
   }, [cart]);
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-900 min-h-screen animate-in fade-in duration-500 overflow-hidden">
+    <div className="flex-1 flex flex-col bg-slate-900 min-h-screen animate-in fade-in duration-500 overflow-hidden rounded-2xl">
       <div className="p-8 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
         <div className="lg:col-span-8 flex flex-col space-y-6 overflow-hidden">
           <header>
