@@ -1,8 +1,8 @@
-import { Bell, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 /**
  * Header.jsx — Barra de topo fixa simplificada.
- * * Removida a barra de busca redundante para focar na busca 
+ * * Removida a barra de busca redundante para focar na busca
  * específica das tabelas de inventário/dashboard.
  */
 export default function Header() {
@@ -34,24 +34,6 @@ export default function Header() {
 
       {/* ── Ações da direita ── */}
       <div className="flex items-center gap-1.5">
-        {/* Sino de notificações */}
-        <button
-          className="
-            relative w-9 h-9 flex items-center justify-center
-            text-slate-500 hover:text-slate-800
-            hover:bg-slate-100 rounded-lg
-            transition-colors duration-150
-          "
-          aria-label="Notificações"
-        >
-          <Bell size={18} />
-          {/* Badge de notificação */}
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-teal-500 ring-2 ring-white" />
-        </button>
-
-        {/* Divisor */}
-        <div className="w-px h-6 bg-slate-200 mx-1" />
-
         {/* Avatar + nome do usuário */}
         <button
           className="
