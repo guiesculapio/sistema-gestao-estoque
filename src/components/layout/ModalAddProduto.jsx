@@ -20,7 +20,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
   const initialState = {
     barcode: "",
     nome: "",
-    categoria_id: "",
+    categoria_id: null,
     qtd: 0,
     precoCusto: 0,
     precoVenda: 0,
@@ -33,7 +33,11 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
     if (productToEdit) {
       setFormData({
         ...productToEdit,
-        categoria_id: productToEdit.categoria_id ?? "",
+        categoria_id:
+          productToEdit.categoria_id != null &&
+          productToEdit.categoria_id !== ""
+            ? Number(productToEdit.categoria_id)
+            : null,
       });
     } else {
       setFormData(initialState);
@@ -45,7 +49,14 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Lógica de status automática (MANTIDA)
+    // Garante que category_id é um inteiro válido (> 0) antes de mandar pro Supabase.
+    // Sem isso, "" cairia em Number("") = 0 e quebraria a FK em categories (23503).
+    const categoriaIdNum = Number(formData.categoria_id);
+    if (!Number.isInteger(categoriaIdNum) || categoriaIdNum <= 0) {
+      setCategoryError("Selecione uma categoria válida antes de salvar.");
+      return;
+    }
+
     const statusFinal =
       formData.qtd <= 0
         ? "esgotado"
@@ -53,18 +64,20 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
           ? "estoque_baixo"
           : "em_estoque";
 
-    const dadosProcessados = { ...formData, status: statusFinal };
+    const dadosProcessados = {
+      ...formData,
+      categoria_id: categoriaIdNum,
+      status: statusFinal,
+    };
 
     if (productToEdit) {
-      // Se estamos editando, usamos a função de update
       updateProduct(productToEdit.id, dadosProcessados);
     } else {
-      // Se é novo, usamos a função de adicionar
-      addProduct({ ...dadosProcessados, id: Date.now() });
+      addProduct(dadosProcessados);
     }
 
-    // Limpa e fecha
     setFormData(initialState);
+    setCategoryError(null);
     onClose();
   };
 
@@ -194,14 +207,14 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
                   disabled={loadingCategories || categories.length === 0}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400 outline-none transition-all text-sm disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                   value={formData.categoria_id ?? ""}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const raw = e.target.value;
                     setFormData({
                       ...formData,
-                      categoria_id: e.target.value
-                        ? Number(e.target.value)
-                        : "",
-                    })
-                  }
+                      categoria_id: raw === "" ? null : Number(raw),
+                    });
+                    setCategoryError(null);
+                  }}
                 >
                   <option value="" disabled>
                     {loadingCategories
