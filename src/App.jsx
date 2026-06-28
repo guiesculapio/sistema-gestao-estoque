@@ -5,6 +5,7 @@ import Dashboard from "./pages/dashboard";
 import Inventario from "./pages/inventario";
 import Relatorios from "./pages/relatorios";
 import Vendas from "./pages/vendas";
+import Configuracoes from "./pages/configuracoes";
 import Login from "./pages/Login";
 import { InventoryProvider } from "./context/InventoryContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -20,6 +21,7 @@ function AuthenticatedApp() {
             <Route path="inventario" element={<Inventario />} />
             <Route path="vendas" element={<Vendas />} />
             <Route path="relatorios" element={<Relatorios />} />
+            <Route path="configuracoes" element={<Configuracoes />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
