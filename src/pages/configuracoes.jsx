@@ -1,11 +1,27 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Settings,
   Tags,
   AlertTriangle,
-  Clock,
-  Lock,
+  Save,
+  Check,
+  Loader2,
+  Pencil,
+  Trash2,
+  X,
+  Search,
+  Info,
+  AlertCircle,
 } from "lucide-react";
+
+import { useCategories } from "../hooks/useCategories";
+import { useUserPreferences } from "../hooks/useUserPreferences";
+import { useInventory } from "../context/InventoryContext";
+import {
+  updateCategory as supabaseUpdateCategory,
+  deleteCategory as supabaseDeleteCategory,
+} from "../lib/supabaseClient";
+import { DEFAULT_LOW_STOCK_THRESHOLD } from "../lib/stock";
 
 const TABS = [
   {
@@ -23,115 +39,575 @@ const TABS = [
   },
 ];
 
-function ComingSoonCard({ icon: Icon, title, description }) {
-  return (
-    <div className="bg-slate-50/60 border border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center text-center">
-      <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center mb-3 shadow-sm">
-        <Icon size={20} className="text-slate-400" />
-      </div>
-      <p className="text-sm font-semibold text-slate-700">{title}</p>
-      <p className="text-xs text-slate-500 mt-1 max-w-sm">{description}</p>
-      <span className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-200 text-[11px] font-semibold">
-        <Clock size={11} /> Em breve
-      </span>
-    </div>
-  );
-}
-
-function CategoriasSection() {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h3 className="text-sm font-bold text-slate-700">
-            Categorias de produtos
-          </h3>
-          <p className="text-xs text-slate-500 mt-0.5 max-w-lg">
-            Crie, renomeie e exclua as categorias que aparecem ao cadastrar um
-            produto. Hoje a criação acontece pelo modal de novo produto — esta
-            tela vai centralizar a gestão.
-          </p>
-        </div>
-        <button
-          type="button"
-          disabled
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-teal-500 rounded-lg shadow-sm opacity-50 cursor-not-allowed"
-        >
-          <Lock size={13} /> Nova categoria
-        </button>
-      </div>
-
-      <ComingSoonCard
-        icon={Tags}
-        title="Gestão de categorias chega em breve"
-        description="Você poderá listar, renomear e remover categorias direto daqui, sem precisar abrir o cadastro de produto."
-      />
-    </div>
-  );
-}
-
+// ─────────────────────────────────────────────────────────────
+// ABA: LIMIAR DE ESTOQUE BAIXO
+// ─────────────────────────────────────────────────────────────
 function LimiarEstoqueSection() {
+  const {
+    preferences,
+    loading: loadingPrefs,
+    updatePreferences,
+  } = useUserPreferences();
+  const { products, updateProduct } = useInventory();
+
+  const [globalDraft, setGlobalDraft] = useState("");
+  const [savingGlobal, setSavingGlobal] = useState(false);
+  const [globalError, setGlobalError] = useState(null);
+  const [globalOk, setGlobalOk] = useState(false);
+
+  useEffect(() => {
+    if (!loadingPrefs) {
+      setGlobalDraft(String(preferences.low_stock_threshold ?? ""));
+    }
+  }, [loadingPrefs, preferences.low_stock_threshold]);
+
+  const currentGlobal =
+    preferences.low_stock_threshold ?? DEFAULT_LOW_STOCK_THRESHOLD;
+  const dirty =
+    String(globalDraft).trim() !== "" &&
+    Number(globalDraft) !== Number(currentGlobal);
+
+  const handleSaveGlobal = async () => {
+    setSavingGlobal(true);
+    setGlobalError(null);
+    setGlobalOk(false);
+    const value = Number(globalDraft);
+    if (!Number.isInteger(value) || value < 0) {
+      setGlobalError("Informe um inteiro maior ou igual a zero");
+      setSavingGlobal(false);
+      return;
+    }
+    const { success, error } = await updatePreferences(value);
+    setSavingGlobal(false);
+    if (!success) {
+      setGlobalError(error);
+      return;
+    }
+    setGlobalOk(true);
+    setTimeout(() => setGlobalOk(false), 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Limiar global */}
+      <div>
+        <h3 className="text-sm font-bold text-slate-700">
+          Limiar global do usuário
+        </h3>
+        <p className="text-xs text-slate-500 mt-0.5 max-w-xl">
+          Quando um produto fica abaixo desse valor ele entra em{" "}
+          <span className="font-semibold">estoque baixo</span>. Vale para todos
+          os produtos que <em>não</em> tenham um limiar próprio configurado
+          abaixo.
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="block">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+              Limiar atual
+            </span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={globalDraft}
+              onChange={(e) => setGlobalDraft(e.target.value)}
+              disabled={loadingPrefs || savingGlobal}
+              className="mt-1 block w-40 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none transition-all disabled:opacity-60"
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={handleSaveGlobal}
+            disabled={!dirty || savingGlobal || loadingPrefs}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-teal-500 hover:bg-teal-600 rounded-lg shadow-sm transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+          >
+            {savingGlobal ? (
+              <>
+                <Loader2 size={13} className="animate-spin" /> Salvando...
+              </>
+            ) : globalOk ? (
+              <>
+                <Check size={13} /> Salvo
+              </>
+            ) : (
+              <>
+                <Save size={13} /> Salvar limiar
+              </>
+            )}
+          </button>
+
+          {globalError && (
+            <p className="text-xs text-red-600 flex items-center gap-1">
+              <AlertCircle size={11} /> {globalError}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Limiar por produto */}
+      <div className="pt-4 border-t border-slate-100">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="text-sm font-bold text-slate-700">
+              Limiar específico por produto
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5 max-w-xl">
+              Deixe em branco para o produto seguir o limiar global. Um valor
+              preenchido{" "}
+              <span className="font-semibold text-slate-700">
+                sobrescreve o global apenas para este produto
+              </span>
+              .
+            </p>
+          </div>
+          <div className="text-xs text-slate-500 inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+            <Info size={12} className="text-slate-400" />
+            {products.length} produto(s)
+          </div>
+        </div>
+
+        <ProdutosMinStockTable
+          products={products}
+          globalThreshold={currentGlobal}
+          updateProduct={updateProduct}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProdutosMinStockTable({ products, globalThreshold, updateProduct }) {
+  const [busca, setBusca] = useState("");
+  const [drafts, setDrafts] = useState({}); // id -> string
+  const [savingId, setSavingId] = useState(null);
+  const [rowError, setRowError] = useState({}); // id -> mensagem
+
+  const filtrados = useMemo(() => {
+    const termo = busca.toLowerCase().trim();
+    const base = termo
+      ? products.filter((p) => p.nome.toLowerCase().includes(termo))
+      : products;
+    return [...base].sort((a, b) =>
+      (a.nome || "").localeCompare(b.nome || "", "pt-BR")
+    );
+  }, [busca, products]);
+
+  const getDraft = (p) => {
+    if (drafts[p.id] !== undefined) return drafts[p.id];
+    return p.min_stock == null ? "" : String(p.min_stock);
+  };
+
+  const dirty = (p) => {
+    const d = getDraft(p);
+    const persisted = p.min_stock == null ? "" : String(p.min_stock);
+    return d.trim() !== persisted;
+  };
+
+  const handleSaveRow = async (p) => {
+    setSavingId(p.id);
+    setRowError((prev) => ({ ...prev, [p.id]: null }));
+
+    const raw = getDraft(p).trim();
+    let payloadMin;
+    if (raw === "") {
+      payloadMin = null;
+    } else {
+      const v = Number(raw);
+      if (!Number.isInteger(v) || v < 0) {
+        setRowError((prev) => ({
+          ...prev,
+          [p.id]: "Use um inteiro ≥ 0 ou deixe em branco",
+        }));
+        setSavingId(null);
+        return;
+      }
+      payloadMin = v;
+    }
+
+    const { success, error } = await updateProduct(p.id, {
+      min_stock: payloadMin,
+    });
+    setSavingId(null);
+    if (!success) {
+      setRowError((prev) => ({
+        ...prev,
+        [p.id]: error || "Falha ao salvar",
+      }));
+      return;
+    }
+    setDrafts((prev) => {
+      const next = { ...prev };
+      delete next[p.id];
+      return next;
+    });
+  };
+
+  if (products.length === 0) {
+    return (
+      <div className="mt-4 bg-slate-50/60 border border-dashed border-slate-200 rounded-xl p-6 text-center">
+        <p className="text-sm text-slate-500">
+          Você ainda não tem produtos cadastrados.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 bg-white border border-slate-200/80 rounded-xl overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
+        <div className="relative flex-1 max-w-sm">
+          <Search
+            size={13}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          />
+          <input
+            type="text"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar produto..."
+            className="w-full pl-8 pr-8 py-2 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none transition-all"
+          />
+          {busca && (
+            <button
+              type="button"
+              onClick={() => setBusca("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px]">
+          <thead className="bg-slate-50/80 border-b border-slate-100">
+            <tr>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                Produto
+              </th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-[110px]">
+                Qtd. atual
+              </th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-[180px]">
+                Limiar próprio
+              </th>
+              <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-[130px]">
+                Ação
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtrados.map((p) => {
+              const usaGlobal = p.min_stock == null;
+              const err = rowError[p.id];
+              return (
+                <tr
+                  key={p.id}
+                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60 transition-colors"
+                >
+                  <td className="px-4 py-2.5">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-slate-800">{p.nome}</span>
+                      {usaGlobal ? (
+                        <span className="text-[11px] text-slate-400 mt-0.5">
+                          usa o global ({globalThreshold})
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-teal-600 mt-0.5">
+                          limiar próprio ignora o global
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className="text-sm font-medium text-slate-600 tabular-nums">
+                      {p.qtd}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      placeholder={`(global: ${globalThreshold})`}
+                      value={getDraft(p)}
+                      onChange={(e) =>
+                        setDrafts((prev) => ({
+                          ...prev,
+                          [p.id]: e.target.value,
+                        }))
+                      }
+                      disabled={savingId === p.id}
+                      className="w-full px-2.5 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none transition-all disabled:opacity-60"
+                    />
+                    {err && (
+                      <p className="mt-1 text-[11px] text-red-600 flex items-center gap-1">
+                        <AlertCircle size={10} /> {err}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveRow(p)}
+                      disabled={!dirty(p) || savingId === p.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-white bg-teal-500 hover:bg-teal-600 rounded-md shadow-sm transition-colors disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+                    >
+                      {savingId === p.id ? (
+                        <>
+                          <Loader2 size={11} className="animate-spin" /> ...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={11} /> Salvar
+                        </>
+                      )}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+            {filtrados.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center">
+                  <p className="text-sm text-slate-400">
+                    Nenhum produto para &ldquo;{busca}&rdquo;.
+                  </p>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ABA: CATEGORIAS
+// ─────────────────────────────────────────────────────────────
+function CategoriasSection() {
+  const {
+    categories,
+    loading: loadingCategories,
+    refetch,
+  } = useCategories();
+
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState("");
+  const [savingId, setSavingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [rowError, setRowError] = useState({}); // id -> mensagem
+
+  const startEdit = (cat) => {
+    setEditingId(cat.id);
+    setEditingName(cat.name);
+    setRowError((prev) => ({ ...prev, [cat.id]: null }));
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingName("");
+  };
+
+  const commitEdit = async (cat) => {
+    const trimmed = editingName.trim();
+    if (!trimmed) {
+      setRowError((prev) => ({
+        ...prev,
+        [cat.id]: "Informe um nome para a categoria",
+      }));
+      return;
+    }
+    if (trimmed === cat.name) {
+      cancelEdit();
+      return;
+    }
+    setSavingId(cat.id);
+    setRowError((prev) => ({ ...prev, [cat.id]: null }));
+    const { category, error } = await supabaseUpdateCategory(cat.id, trimmed);
+    setSavingId(null);
+    if (error || !category) {
+      setRowError((prev) => ({
+        ...prev,
+        [cat.id]: error || "Não foi possível atualizar",
+      }));
+      return;
+    }
+    await refetch();
+    cancelEdit();
+  };
+
+  const handleDelete = async (cat) => {
+    const confirmou = window.confirm(
+      `Excluir a categoria "${cat.name}"? Esta ação não pode ser desfeita.`
+    );
+    if (!confirmou) return;
+
+    setDeletingId(cat.id);
+    setRowError((prev) => ({ ...prev, [cat.id]: null }));
+    const { success, error } = await supabaseDeleteCategory(cat.id);
+    setDeletingId(null);
+    if (!success) {
+      setRowError((prev) => ({
+        ...prev,
+        [cat.id]: error || "Não foi possível excluir",
+      }));
+      return;
+    }
+    await refetch();
+  };
+
   return (
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-bold text-slate-700">
-          Limiar de estoque baixo
+          Categorias de produtos
         </h3>
-        <p className="text-xs text-slate-500 mt-0.5 max-w-lg">
-          Quando um produto fica com a quantidade abaixo desse valor, ele entra
-          na lista de alertas críticos do Dashboard. Em breve esse limiar será
-          configurável por aqui.
+        <p className="text-xs text-slate-500 mt-0.5 max-w-xl">
+          Renomeie inline ou remova categorias que não estão em uso. Para criar
+          novas, use o botão &ldquo;+ Nova&rdquo; no modal de cadastro de
+          produto. Categorias com produtos vinculados não podem ser excluídas.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
-        <label className="block">
-          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-            Limiar atual
-          </span>
-          <div className="mt-1 relative">
-            <input
-              type="number"
-              disabled
-              value=""
-              placeholder="—"
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-400 cursor-not-allowed focus:outline-none"
-            />
-            <Lock
-              size={13}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300"
-            />
+      <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden">
+        {loadingCategories ? (
+          <div className="p-10 flex items-center justify-center text-slate-400 text-sm gap-2">
+            <Loader2 size={14} className="animate-spin" /> Carregando
+            categorias...
           </div>
-        </label>
-
-        <label className="block">
-          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-            Aplicar a
-          </span>
-          <div className="mt-1 relative">
-            <select
-              disabled
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-400 cursor-not-allowed appearance-none focus:outline-none"
-            >
-              <option>Todos os produtos</option>
-            </select>
-            <Lock
-              size={13}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300"
-            />
+        ) : categories.length === 0 ? (
+          <div className="p-10 text-center">
+            <p className="text-sm text-slate-500">
+              Você ainda não tem categorias.
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              Cadastre a primeira no modal de novo produto.
+            </p>
           </div>
-        </label>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-slate-50/80 border-b border-slate-100">
+              <tr>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Categoria
+                </th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-[180px]">
+                  Ações
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((cat) => {
+                const isEditing = editingId === cat.id;
+                const isSaving = savingId === cat.id;
+                const isDeleting = deletingId === cat.id;
+                const err = rowError[cat.id];
+                return (
+                  <tr
+                    key={cat.id}
+                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60 transition-colors"
+                  >
+                    <td className="px-4 py-2.5">
+                      {isEditing ? (
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitEdit(cat);
+                            if (e.key === "Escape") cancelEdit();
+                          }}
+                          disabled={isSaving}
+                          className="w-full max-w-sm px-2.5 py-1.5 text-sm bg-white border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-100 outline-none disabled:opacity-60"
+                        />
+                      ) : (
+                        <span className="text-sm text-slate-800">
+                          {cat.name}
+                        </span>
+                      )}
+                      {err && (
+                        <p className="mt-1 text-[11px] text-red-600 flex items-center gap-1">
+                          <AlertCircle size={10} /> {err}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="inline-flex items-center gap-1">
+                        {isEditing ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => commitEdit(cat)}
+                              disabled={isSaving}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-white bg-teal-500 hover:bg-teal-600 rounded-md shadow-sm transition-colors disabled:bg-slate-200 disabled:text-slate-400"
+                            >
+                              {isSaving ? (
+                                <Loader2
+                                  size={11}
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <Check size={11} />
+                              )}
+                              Salvar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEdit}
+                              disabled={isSaving}
+                              className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors disabled:opacity-60"
+                            >
+                              <X size={11} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startEdit(cat)}
+                              disabled={isDeleting}
+                              className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-colors disabled:opacity-60"
+                              title="Renomear"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(cat)}
+                              disabled={isDeleting}
+                              className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-60"
+                              title="Excluir"
+                            >
+                              {isDeleting ? (
+                                <Loader2 size={13} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={13} />
+                              )}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
-
-      <ComingSoonCard
-        icon={AlertTriangle}
-        title="Configuração de limiar chega em breve"
-        description="Você vai poder definir um valor global e, futuramente, sobrescrever por produto ou por categoria."
-      />
     </div>
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// PÁGINA
+// ─────────────────────────────────────────────────────────────
 export default function Configuracoes() {
   const [activeTab, setActiveTab] = useState("categorias");
 

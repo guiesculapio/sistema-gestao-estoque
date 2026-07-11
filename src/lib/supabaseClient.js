@@ -112,6 +112,152 @@ export async function createCategory(name) {
 }
 
 /**
+ * Atualizar o nome de uma categoria.
+ * A RLS garante que só o dono pode atualizar; ainda assim retornamos
+ * o registro para o consumidor detectar "nada foi atualizado".
+ * @param {number} id
+ * @param {string} name
+ * @returns {Promise<{category:{id:number,name:string}|null, error:string|null}>}
+ */
+export async function updateCategory(id, name) {
+  const trimmed = (name || "").trim();
+  if (!trimmed) {
+    return { category: null, error: "Informe um nome para a categoria" };
+  }
+
+  const { data, error } = await supabase
+    .from("categories")
+    .update({ name: trimmed })
+    .eq("id", id)
+    .select("id, name");
+
+  if (error) {
+    console.error("❌ Erro ao atualizar categoria:", error.message, error);
+    return { category: null, error: error.message };
+  }
+
+  const category = data?.[0] || null;
+  if (!category) {
+    return {
+      category: null,
+      error: "Categoria não encontrada ou sem permissão para editar",
+    };
+  }
+
+  return { category, error: null };
+}
+
+/**
+ * Excluir uma categoria.
+ * Antes de tentar apagar, verifica se existe algum produto vinculado —
+ * se sim, aborta com erro descritivo para não deletar em cascata silenciosamente
+ * nem quebrar produtos com FK órfã.
+ * @param {number} id
+ * @returns {Promise<{success:boolean, error:string|null}>}
+ */
+export async function deleteCategory(id) {
+  const { count, error: countError } = await supabase
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", id);
+
+  if (countError) {
+    console.error(
+      "❌ Erro ao verificar produtos da categoria:",
+      countError.message
+    );
+    return {
+      success: false,
+      error: "Não foi possível verificar produtos vinculados à categoria",
+    };
+  }
+
+  if ((count ?? 0) > 0) {
+    return {
+      success: false,
+      error: `Existem ${count} produto(s) usando esta categoria. Remova ou reatribua antes de excluir.`,
+    };
+  }
+
+  const { error } = await supabase.from("categories").delete().eq("id", id);
+
+  if (error) {
+    console.error("❌ Erro ao excluir categoria:", error.message);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, error: null };
+}
+
+/**
+ * Buscar as preferências do usuário logado.
+ * Retorna null se o usuário ainda não tem linha em user_preferences.
+ * @returns {Promise<{low_stock_threshold:number}|null>}
+ */
+export async function getUserPreferences() {
+  try {
+    const { data, error } = await supabase
+      .from("user_preferences")
+      .select("low_stock_threshold")
+      .maybeSingle();
+
+    if (error) throw error;
+    return data || null;
+  } catch (err) {
+    console.error("❌ Erro ao buscar preferências:", err.message);
+    return null;
+  }
+}
+
+/**
+ * Atualizar o limiar global de estoque baixo do usuário logado.
+ * Usa upsert por user_id para cobrir tanto o caso de já existir seed
+ * quanto o de linha ausente (novo usuário sem trigger).
+ * @param {number} threshold
+ * @returns {Promise<{preferences:{low_stock_threshold:number}|null, error:string|null}>}
+ */
+export async function updateUserPreferences(threshold) {
+  const value = Number(threshold);
+  if (!Number.isInteger(value) || value < 0) {
+    return {
+      preferences: null,
+      error: "O limiar deve ser um número inteiro maior ou igual a zero",
+    };
+  }
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    console.error(
+      "❌ updateUserPreferences abortado: sem sessão ativa.",
+      sessionError
+    );
+    return {
+      preferences: null,
+      error: "Sessão expirada. Faça logout e login novamente.",
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("user_preferences")
+    .upsert(
+      { user_id: session.user.id, low_stock_threshold: value },
+      { onConflict: "user_id" }
+    )
+    .select("low_stock_threshold");
+
+  if (error) {
+    console.error("❌ Erro ao atualizar preferências:", error.message, error);
+    return { preferences: null, error: error.message };
+  }
+
+  return { preferences: data?.[0] || null, error: null };
+}
+
+/**
  * Buscar um produto específico pelo ID
  * @param {number} id - ID do produto
  * @returns {Promise<Object|null>} Dados do produto ou null

@@ -14,6 +14,8 @@ import {
 
 // Hook do contexto
 import { useInventory } from "../context/InventoryContext";
+import { useUserPreferences } from "../hooks/useUserPreferences";
+import { isLowStock } from "../lib/stock";
 // Componentes de Modal
 import ModalAddProduto from "../components/layout/ModalAddProduto";
 import ModalHistorico from "../components/layout/ModalHistorico";
@@ -118,8 +120,14 @@ function Th({ children, column, sortConfig, onSort, className = "" }) {
   );
 }
 
-function ProdutoRow({ produto, onEdit, onDelete, onHistory }) {
+function ProdutoRow({ produto, userPreferences, onEdit, onDelete, onHistory }) {
   const valorTotal = produto.qtd * produto.precoVenda;
+  const qtyColor =
+    produto.qtd === 0
+      ? "text-red-500"
+      : isLowStock(produto, userPreferences)
+        ? "text-amber-500"
+        : "text-slate-700";
   return (
     <tr className="group border-b border-slate-100 last:border-0 hover:bg-slate-50/70 transition-colors duration-100">
       <td className="px-4 py-3.5">
@@ -136,9 +144,7 @@ function ProdutoRow({ produto, onEdit, onDelete, onHistory }) {
         <span className="text-sm text-slate-500">{produto.categoria}</span>
       </td>
       <td className="px-4 py-3.5">
-        <span
-          className={`text-sm font-bold tabular-nums ${produto.qtd === 0 ? "text-red-500" : produto.qtd <= 4 ? "text-amber-500" : "text-slate-700"}`}
-        >
+        <span className={`text-sm font-bold tabular-nums ${qtyColor}`}>
           {produto.qtd}
         </span>
       </td>
@@ -233,6 +239,7 @@ export default function Inventario() {
 
   // Dados e funções do Contexto
   const { products: produtos, deleteProduct } = useInventory();
+  const { preferences: userPreferences } = useUserPreferences();
 
   const produtosFiltrados = useMemo(() => {
     const termo = busca.toLowerCase().trim();
@@ -432,6 +439,7 @@ export default function Inventario() {
                   <ProdutoRow
                     key={produto.id}
                     produto={produto}
+                    userPreferences={userPreferences}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onHistory={handleHistory}

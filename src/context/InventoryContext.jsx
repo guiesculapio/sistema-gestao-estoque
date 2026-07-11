@@ -15,6 +15,8 @@ import {
   createInventoryLog,
   fetchProductHistory as supabaseFetchProductHistory,
 } from "../lib/supabaseClient";
+import { isLowStock, computeStockStatus } from "../lib/stock";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 
 export const InventoryContext = createContext();
 
@@ -34,7 +36,11 @@ function toSupabaseProduct(p) {
         ? Number.parseFloat(p.precoCusto)
         : null,
     price: Number.parseFloat(p.precoVenda) || 0,
-    min_stock: 5,
+    // min_stock null = usa threshold global do user_preferences (regra em src/lib/stock.js).
+    min_stock:
+      p.min_stock != null && p.min_stock !== ""
+        ? Number.parseInt(p.min_stock, 10)
+        : null,
     status: p.status || "em_estoque",
   };
 }
@@ -47,6 +53,7 @@ function fromSupabaseProduct(row) {
     categoria_id: row.category_id ?? null,
     categoria: row.categories?.name ?? null,
     qtd: row.current_stock,
+    min_stock: row.min_stock ?? null,
     precoCusto: row.cost_price != null ? Number(row.cost_price) : 0,
     precoVenda: Number(row.price),
     status: row.status,
@@ -71,6 +78,11 @@ function toSupabaseUpdates(updates) {
         : null;
   if ("precoVenda" in updates)
     payload.price = Number.parseFloat(updates.precoVenda) || 0;
+  if ("min_stock" in updates)
+    payload.min_stock =
+      updates.min_stock != null && updates.min_stock !== ""
+        ? Number.parseInt(updates.min_stock, 10)
+        : null;
   if ("status" in updates) payload.status = updates.status;
   return payload;
 }
@@ -78,6 +90,7 @@ function toSupabaseUpdates(updates) {
 export function InventoryProvider({ children }) {
   const [products, setProducts] = useState([]);
   const [sales, setSales] = useState([]);
+  const { preferences: userPreferences } = useUserPreferences();
 
   // Carregar produtos do Supabase na montagem
   useEffect(() => {
@@ -225,15 +238,10 @@ export function InventoryProvider({ children }) {
         const itemInCart = persisted.find((item) => item.id === product.id);
         if (itemInCart) {
           const novaQtd = Math.max(0, (product.qtd || 0) - itemInCart.cartQty);
+          const updated = { ...product, qtd: novaQtd };
           return {
-            ...product,
-            qtd: novaQtd,
-            status:
-              novaQtd <= 0
-                ? "esgotado"
-                : novaQtd < 5
-                  ? "estoque_baixo"
-                  : "em_estoque",
+            ...updated,
+            status: computeStockStatus(updated, userPreferences),
           };
         }
         return product;
@@ -246,7 +254,7 @@ export function InventoryProvider({ children }) {
       persistedCount: persisted.length,
       requestedCount: itemsToSell.length,
     };
-  }, []);
+  }, [userPreferences]);
 
   // --- MÉTRICAS GLOBAIS ---
   const metrics = useMemo(() => {
@@ -265,7 +273,9 @@ export function InventoryProvider({ children }) {
     );
     const realProfit = sales.reduce((acc, s) => acc + s.lucroReal, 0);
 
-    const lowStockCount = products.filter((p) => p.qtd < 5).length;
+    const lowStockCount = products.filter((p) =>
+      isLowStock(p, userPreferences)
+    ).length;
 
     return {
       stockCost,
@@ -275,7 +285,7 @@ export function InventoryProvider({ children }) {
       lowStockCount,
       totalSalesCount: sales.length,
     };
-  }, [products, sales]);
+  }, [products, sales, userPreferences]);
 
   const fetchProductHistory = useCallback(
     (id) => supabaseFetchProductHistory(id),

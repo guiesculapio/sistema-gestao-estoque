@@ -3,6 +3,8 @@ import { X, Save, Barcode, Plus, Check, AlertCircle } from "lucide-react";
 // Mantendo o seu caminho de importação original
 import { useInventory } from "../../context/InventoryContext";
 import { useCategories } from "../../hooks/useCategories";
+import { useUserPreferences } from "../../hooks/useUserPreferences";
+import { computeStockStatus } from "../../lib/stock";
 
 export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
   const { addProduct, updateProduct } = useInventory();
@@ -11,6 +13,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
     loading: loadingCategories,
     createCategory,
   } = useCategories();
+  const { preferences: userPreferences } = useUserPreferences();
 
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -57,12 +60,10 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
       return;
     }
 
-    const statusFinal =
-      formData.qtd <= 0
-        ? "esgotado"
-        : formData.qtd < 5
-          ? "estoque_baixo"
-          : "em_estoque";
+    const statusFinal = computeStockStatus(
+      { qtd: formData.qtd, min_stock: formData.min_stock ?? null },
+      userPreferences
+    );
 
     const dadosProcessados = {
       ...formData,
