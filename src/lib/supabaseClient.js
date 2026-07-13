@@ -285,9 +285,17 @@ export async function fetchProductById(id) {
  */
 export async function createProduct(product) {
   try {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error("Sessão expirada. Faça login novamente.");
+    }
+
     const { data, error } = await supabase
       .from("products")
-      .insert([product])
+      .insert([{ ...product, user_id: user.id }])
       .select();
 
     if (error) throw error;
@@ -347,9 +355,17 @@ export async function deleteProduct(id) {
  */
 export async function createInventoryMovement(movement) {
   try {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error("Sessão expirada. Faça login novamente.");
+    }
+
     const { data, error } = await supabase
       .from("inventory_movements")
-      .insert([movement])
+      .insert([{ ...movement, user_id: user.id }])
       .select();
 
     if (error) throw error;
@@ -389,9 +405,17 @@ export async function fetchProductMovements(productId) {
  */
 export async function createInventoryLog({ product_id, type, quantity = 0 }) {
   try {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error("Sessão expirada. Faça login novamente.");
+    }
+
     const { data, error } = await supabase
       .from("inventory_logs")
-      .insert([{ product_id, type, quantity }])
+      .insert([{ product_id, type, quantity, user_id: user.id }])
       .select();
 
     if (error) throw error;
