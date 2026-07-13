@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { useInventory } from "../hooks/useInventory"; // ✅ NOVO HOOK COM SUPABASE
+import { useUserPreferences } from "../hooks/useUserPreferences";
+import { isLowStock } from "../lib/stock";
 import {
   AreaChart,
   Area,
@@ -199,6 +201,8 @@ export default function Dashboard() {
     outboundHistory,
   } = useInventory();
 
+  const { preferences } = useUserPreferences();
+
   console.log({ products, stats, loading });
 
   const [alertMessage, setAlertMessage] = useState(null);
@@ -221,8 +225,23 @@ export default function Dashboard() {
       0
     );
     const lucroEstimado = faturamentoPotencial - investimentoEstoque;
+    // Inclui na reposição urgente produtos esgotados (qtd <= 0) ou abaixo do
+    // limiar (isLowStock respeita min_stock por produto e o low_stock_threshold
+    // do usuário — fonte única da verdade em src/lib/stock.js).
     const criticos = [...products]
-      .sort((a, b) => a.current_stock - b.current_stock)
+      .filter((p) => {
+        const qty = Number(p.current_stock) || 0;
+        return qty <= 0 || isLowStock(p, preferences);
+      })
+      .sort((a, b) => {
+        const qa = Number(a.current_stock) || 0;
+        const qb = Number(b.current_stock) || 0;
+        // Esgotados (qtd <= 0) primeiro, depois por qtd crescente.
+        const ea = qa <= 0 ? 0 : 1;
+        const eb = qb <= 0 ? 0 : 1;
+        if (ea !== eb) return ea - eb;
+        return qa - qb;
+      })
       .slice(0, 5);
 
     // Agrupamento para o Gráfico de Barras
@@ -252,7 +271,7 @@ export default function Dashboard() {
       alertasCount: stats.lowStockCount + stats.outOfStockCount,
       dadosCategoria,
     };
-  }, [products, stats]);
+  }, [products, stats, preferences]);
 
   // --- HISTÓRICO REAL DE VENDAS AGRUPADO POR MÊS ---
   const tendenciaData = useMemo(() => {
