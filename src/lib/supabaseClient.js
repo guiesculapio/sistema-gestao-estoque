@@ -493,3 +493,74 @@ export async function fetchOutboundHistory() {
     return [];
   }
 }
+
+/**
+ * Registrar uma venda persistindo cada item do carrinho em public.sales.
+ * É a fonte DURÁVEL dos relatórios (sobrevive a reload / troca de aba).
+ *
+ * ⚠️ NÃO decrementa estoque: quem dá baixa em products.current_stock é o
+ * trigger disparado pelo movimento OUT em inventory_movements (ver sellItems).
+ * Por isso NÃO existe updateProductStock — decrementar aqui causaria baixa dupla.
+ * NÃO envia gross_profit — é coluna GERADA pelo banco.
+ *
+ * Usa getUser() (nunca getSession()) e envia user_id explícito para satisfazer
+ * a policy RLS mesmo se o DEFAULT auth.uid() não expandir no contexto da request.
+ *
+ * @param {Array<{id:string, nome:string, categoria:string, cartQty:number, precoVenda:number, precoCusto:number}>} items
+ * @returns {Promise<{data: Array|null, error: {message:string}|null}>}
+ */
+export async function createSale(items) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      data: null,
+      error: { message: "Sessão expirada. Faça login novamente." },
+    };
+  }
+
+  const registros = items.map((item) => ({
+    user_id: user.id,
+    product_id: item.id,
+    nome: item.nome,
+    categoria: item.categoria,
+    qty_sold: item.cartQty,
+    sale_price: item.precoVenda,
+    cost_price: item.precoCusto,
+    // gross_profit: NÃO enviar — coluna gerada pelo banco.
+  }));
+
+  const { data, error } = await supabase
+    .from("sales")
+    .insert(registros)
+    .select();
+
+  if (error) {
+    console.error("❌ Erro ao registrar venda:", error.message, error);
+  }
+
+  return { data, error };
+}
+
+/**
+ * Buscar o histórico de vendas do usuário logado, mais recente primeiro.
+ * A RLS filtra automaticamente por auth.uid() = user_id.
+ * @returns {Promise<Array>} Linhas de public.sales ou [] em caso de erro
+ */
+export async function fetchSales() {
+  try {
+    const { data, error } = await supabase
+      .from("sales")
+      .select("*")
+      .order("sold_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("❌ Erro ao buscar vendas:", err.message);
+    return [];
+  }
+}

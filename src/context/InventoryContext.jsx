@@ -13,6 +13,8 @@ import {
   deleteProduct as supabaseDeleteProduct,
   createInventoryMovement,
   createInventoryLog,
+  createSale,
+  fetchSales,
   fetchProductHistory as supabaseFetchProductHistory,
 } from "../lib/supabaseClient";
 import { isLowStock, computeStockStatus } from "../lib/stock";
@@ -60,6 +62,26 @@ function fromSupabaseProduct(row) {
   };
 }
 
+// Tradução linha de public.sales (schema EN) → shape PT consumido pelos
+// relatórios. lucroReal usa a coluna GERADA gross_profit quando presente.
+function fromSupabaseSale(row) {
+  const sale = Number(row.sale_price);
+  const cost = row.cost_price != null ? Number(row.cost_price) : 0;
+  const qty = row.qty_sold;
+  return {
+    saleId: row.id,
+    productId: row.product_id,
+    nome: row.nome,
+    categoria: row.categoria,
+    qtdVendida: qty,
+    valorVenda: sale,
+    custoUnitario: cost,
+    lucroReal:
+      row.gross_profit != null ? Number(row.gross_profit) : (sale - cost) * qty,
+    data: row.sold_at,
+  };
+}
+
 // Tradução parcial PT → EN para updates (não sobrescreve campos ausentes).
 function toSupabaseUpdates(updates) {
   const payload = {};
@@ -99,6 +121,20 @@ export function InventoryProvider({ children }) {
       const rows = await fetchProducts();
       if (cancelled) return;
       setProducts(rows.map(fromSupabaseProduct));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Carregar histórico de vendas do Supabase na montagem (fonte durável dos
+  // relatórios — antes o array `sales` era só estado local e sumia no reload).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const rows = await fetchSales();
+      if (cancelled) return;
+      setSales(rows.map(fromSupabaseSale));
     })();
     return () => {
       cancelled = true;
@@ -176,85 +212,88 @@ export function InventoryProvider({ children }) {
     return { success: true };
   }, []);
 
-  // --- FUNÇÃO DE VENDA (PERSISTE EM inventory_movements + ESTADO LOCAL) ---
-  const sellItems = useCallback(async (itemsToSell) => {
-    const sharedSaleId = `SALE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const timestamp = new Date().toISOString();
-
-    // 1) Inserir cada item como movimento OUT no Supabase.
-    // O trigger do banco decrementa products.current_stock automaticamente,
-    // e a CHECK constraint impede estoque negativo.
-    const persisted = [];
-    for (const item of itemsToSell) {
-      const movement = await createInventoryMovement({
-        product_id: item.id,
-        type: "OUT",
-        quantity: item.cartQty,
-        reason: "venda",
-        sale_id: sharedSaleId,
-      });
-
-      if (movement) {
-        persisted.push(item);
-      } else {
-        console.error(
-          `❌ sellItems: falha ao registrar saída de ${item.nome} (id ${item.id}). Item ignorado no estado local.`
+  // --- FUNÇÃO DE VENDA (PERSISTE EM public.sales + inventory_movements) ---
+  // Ordem importa e é estritamente sequencial: se QUALQUER etapa do banco
+  // falhar, lança erro e NÃO atualiza o estado local (evita divergir do banco).
+  const sellItems = useCallback(
+    async (itemsToSell) => {
+      // 1) Persistir a venda em public.sales — fonte durável dos relatórios.
+      //    É o "gate": se falhar, nada mais acontece (estoque não é tocado).
+      const { data: salesRows, error: salesError } =
+        await createSale(itemsToSell);
+      if (salesError) {
+        throw new Error(
+          `Falha ao registrar venda no banco: ${
+            salesError.message || "erro desconhecido"
+          }. Nada foi alterado localmente.`
         );
       }
-    }
 
-    if (persisted.length === 0) {
-      return { success: false, error: "Nenhuma venda foi persistida" };
-    }
-
-    // Log de auditoria: cada item persistido vira uma SAIDA no inventory_logs.
-    await Promise.all(
-      persisted.map((item) =>
-        createInventoryLog({
+      // 2) Registrar cada saída em inventory_movements. O trigger do banco
+      //    decrementa products.current_stock automaticamente e a CHECK
+      //    constraint impede estoque negativo — por isso NÃO fazemos UPDATE
+      //    manual de estoque aqui (causaria baixa dupla).
+      const sharedSaleId = `SALE-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+      for (const item of itemsToSell) {
+        const movement = await createInventoryMovement({
           product_id: item.id,
-          type: "SAIDA",
+          type: "OUT",
           quantity: item.cartQty,
-        })
-      )
-    );
-
-    // 2) Atualizar estado local somente com os itens efetivamente persistidos
-    const newSalesEntry = persisted.map((item) => ({
-      saleId: sharedSaleId,
-      productId: item.id,
-      nome: item.nome,
-      categoria: item.categoria,
-      qtdVendida: item.cartQty,
-      valorVenda: item.precoVenda,
-      custoUnitario: item.precoCusto,
-      lucroReal: (item.precoVenda - item.precoCusto) * item.cartQty,
-      data: timestamp,
-    }));
-
-    setSales((prev) => [...prev, ...newSalesEntry]);
-
-    setProducts((prevProducts) =>
-      prevProducts.map((product) => {
-        const itemInCart = persisted.find((item) => item.id === product.id);
-        if (itemInCart) {
-          const novaQtd = Math.max(0, (product.qtd || 0) - itemInCart.cartQty);
-          const updated = { ...product, qtd: novaQtd };
-          return {
-            ...updated,
-            status: computeStockStatus(updated, userPreferences),
-          };
+          reason: "venda",
+          sale_id: sharedSaleId,
+        });
+        if (!movement) {
+          throw new Error(
+            `Venda registrada, mas falhou ao dar baixa no estoque de ${item.nome} (id ${item.id}). Recarregue a página para reconciliar com o banco.`
+          );
         }
-        return product;
-      })
-    );
+      }
 
-    return {
-      success: true,
-      saleId: sharedSaleId,
-      persistedCount: persisted.length,
-      requestedCount: itemsToSell.length,
-    };
-  }, [userPreferences]);
+      // 3) Log de auditoria: cada item vira uma SAIDA no inventory_logs.
+      await Promise.all(
+        itemsToSell.map((item) =>
+          createInventoryLog({
+            product_id: item.id,
+            type: "SAIDA",
+            quantity: item.cartQty,
+          })
+        )
+      );
+
+      // 4) Só agora atualiza o estado local — depois de TODAS as operações
+      //    do banco terem retornado sem erro. Usamos as linhas retornadas
+      //    por createSale (ids e gross_profit reais vindos do banco).
+      setSales((prev) => [...prev, ...(salesRows || []).map(fromSupabaseSale)]);
+
+      setProducts((prevProducts) =>
+        prevProducts.map((product) => {
+          const itemInCart = itemsToSell.find((item) => item.id === product.id);
+          if (itemInCart) {
+            const novaQtd = Math.max(
+              0,
+              (product.qtd || 0) - itemInCart.cartQty
+            );
+            const updated = { ...product, qtd: novaQtd };
+            return {
+              ...updated,
+              status: computeStockStatus(updated, userPreferences),
+            };
+          }
+          return product;
+        })
+      );
+
+      return {
+        success: true,
+        saleId: sharedSaleId,
+        persistedCount: itemsToSell.length,
+        requestedCount: itemsToSell.length,
+      };
+    },
+    [userPreferences]
+  );
 
   // --- MÉTRICAS GLOBAIS ---
   const metrics = useMemo(() => {

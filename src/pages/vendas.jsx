@@ -196,12 +196,20 @@ export default function Vendas() {
     );
   };
 
-  const finalizeSale = () => {
+  const finalizeSale = async () => {
     if (cart.length === 0) return;
-    sellItems(cart);
-    setSuccess(true);
-    setCart([]);
-    setTimeout(() => setSuccess(false), 4000);
+    setError("");
+    try {
+      await sellItems(cart);
+      setSuccess(true);
+      setCart([]);
+      setTimeout(() => setSuccess(false), 4000);
+    } catch (err) {
+      // sellItems lança se qualquer operação do banco falhar — não limpamos o
+      // carrinho nem mostramos sucesso, para o operador poder tentar de novo.
+      setError(err.message || "Falha ao processar a venda");
+      setTimeout(() => setError(""), 6000);
+    }
   };
 
   const totalValue = useMemo(
