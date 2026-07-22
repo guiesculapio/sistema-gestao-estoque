@@ -3,8 +3,6 @@ import { useInventory } from "../hooks/useInventory"; // ✅ NOVO HOOK COM SUPAB
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { isLowStock } from "../lib/stock";
 import {
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   XAxis,
@@ -246,7 +244,7 @@ export default function Dashboard() {
 
     // Agrupamento para o Gráfico de Barras
     const categoriasMap = products.reduce((acc, p) => {
-      const cat = p.category || "Geral";
+      const cat = p.categories?.name || "Sem categoria";
       if (!acc[cat]) acc[cat] = { categoria: cat, vendas: 0, custo: 0 };
       acc[cat].vendas += Number(p.current_stock) * Number(p.price);
       acc[cat].custo += Number(p.current_stock) * Number(p.cost_price || 0);
@@ -495,7 +493,7 @@ export default function Dashboard() {
           </h3>
           {tendenciaData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={tendenciaData}>
+              <BarChart data={tendenciaData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
@@ -511,13 +509,8 @@ export default function Dashboard() {
                   formatter={(value) => [brl(value), "Faturamento"]}
                   labelStyle={{ color: "#475569", fontWeight: 600 }}
                 />
-                <Area
-                  type="monotone"
-                  dataKey="v"
-                  stroke="#14b8a6"
-                  fill="#ccfbf1"
-                />
-              </AreaChart>
+                <Bar dataKey="v" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex flex-col items-center justify-center h-[250px] text-center">
