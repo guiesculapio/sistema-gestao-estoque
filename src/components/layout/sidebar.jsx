@@ -7,6 +7,7 @@ import {
   Layers,
   ShoppingCart,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 /**
  * NAV_ITEMS — Itens de navegação principal.
@@ -59,6 +60,11 @@ function NavItem({ to, icon: Icon, label }) {
 }
 
 export default function Sidebar() {
+  const { user } = useAuth();
+  const email = user?.email ?? "";
+  const initials = email.slice(0, 2).toUpperCase();
+  const displayEmail = email.length > 22 ? email.slice(0, 22) + "..." : email;
+
   return (
     <aside
       className="
@@ -77,7 +83,7 @@ export default function Sidebar() {
         </div>
         <div className="leading-tight">
           <p className="text-white text-sm font-semibold tracking-tight">
-            Crowned
+            Estoklab
           </p>
           <p className="text-slate-500 text-[10px] font-mono uppercase tracking-widest">
             v1.0
@@ -102,10 +108,10 @@ export default function Sidebar() {
         {/* Card de usuário */}
         <div className="mt-3 flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-800/60 border border-slate-700/40">
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-[10px] font-bold text-white">HG</span>
+            <span className="text-[10px] font-bold text-white">{initials}</span>
           </div>
           <div className="leading-tight min-w-0">
-            <p className="text-slate-200 text-xs font-medium truncate">Hugo</p>
+            <p className="text-slate-200 text-xs font-medium truncate">{displayEmail}</p>
             <p className="text-slate-500 text-[10px] truncate"></p>
           </div>
         </div>
