@@ -45,6 +45,12 @@ export function AuthProvider({ children }) {
     return { success: true, session: data.session };
   }, []);
 
+  const signUp = useCallback(async (email, password) => {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  }, []);
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) return { success: false, error: error.message };
@@ -57,9 +63,10 @@ export function AuthProvider({ children }) {
       user: session?.user ?? null,
       loading,
       signIn,
+      signUp,
       signOut,
     }),
-    [session, loading, signIn, signOut]
+    [session, loading, signIn, signUp, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

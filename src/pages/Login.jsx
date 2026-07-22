@@ -92,6 +92,13 @@ export default function Login() {
               </>
             )}
           </button>
+
+          <p className="text-center text-sm text-slate-500">
+            Não tem uma conta?{" "}
+            <a href="/register" className="font-semibold text-emerald-600 hover:text-emerald-700">
+              Criar conta grátis
+            </a>
+          </p>
         </form>
       </div>
     </div>

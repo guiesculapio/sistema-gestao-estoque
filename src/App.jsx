@@ -7,6 +7,7 @@ import Relatorios from "./pages/relatorios";
 import Vendas from "./pages/vendas";
 import Configuracoes from "./pages/configuracoes";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import { InventoryProvider } from "./context/InventoryContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -38,6 +39,17 @@ function AppGate() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader size={28} className="animate-spin text-slate-400" />
       </div>
+    );
+  }
+
+  // Rotas públicas — acessíveis sem sessão
+  if (window.location.pathname === "/register") {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/register" element={<Register />} />
+        </Routes>
+      </BrowserRouter>
     );
   }
 
