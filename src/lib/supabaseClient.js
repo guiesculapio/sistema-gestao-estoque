@@ -303,9 +303,28 @@ export async function fetchProductById(id) {
 }
 
 /**
+ * Traduz um erro do Supabase em mensagem amigável para duplicatas (23505).
+ * A tabela products tem UNIQUE em (barcode, user_id) e (name, user_id); o nome
+ * do índice violado vem em error.message, então detectamos qual campo colidiu.
+ * @param {{code?:string, message?:string}} error
+ * @returns {string|null} Mensagem amigável, ou null se não for duplicata
+ */
+function duplicateProductMessage(error) {
+  if (error?.code !== "23505") return null;
+  const message = error.message || "";
+  if (message.includes("barcode")) {
+    return "Este código de barras já está cadastrado.";
+  }
+  if (message.includes("name")) {
+    return "Já existe um produto com este nome.";
+  }
+  return "Produto duplicado. Verifique o nome e o código de barras.";
+}
+
+/**
  * Inserir um novo produto
  * @param {Object} product - Dados do produto
- * @returns {Promise<Object|null>} Produto criado ou null
+ * @returns {Promise<{data:Object|null, error:string|null}>} Produto criado ou erro amigável
  */
 export async function createProduct(product) {
   try {
@@ -314,7 +333,7 @@ export async function createProduct(product) {
       error: userError,
     } = await supabase.auth.getUser();
     if (userError || !user) {
-      throw new Error("Sessão expirada. Faça login novamente.");
+      return { data: null, error: "Sessão expirada. Faça login novamente." };
     }
 
     const { data, error } = await supabase
@@ -322,12 +341,17 @@ export async function createProduct(product) {
       .insert([{ ...product, user_id: user.id }])
       .select();
 
-    if (error) throw error;
+    if (error) {
+      const dup = duplicateProductMessage(error);
+      if (dup) return { data: null, error: dup };
+      throw error;
+    }
+
     console.log("✅ Produto criado com sucesso!");
-    return data?.[0] || null;
+    return { data: data?.[0] || null, error: null };
   } catch (err) {
     console.error("❌ Erro ao criar produto:", err.message);
-    return null;
+    return { data: null, error: err.message || "Falha ao salvar produto no banco" };
   }
 }
 
@@ -335,7 +359,7 @@ export async function createProduct(product) {
  * Atualizar um produto existente
  * @param {number} id - ID do produto
  * @param {Object} updates - Dados a atualizar
- * @returns {Promise<Object|null>} Produto atualizado ou null
+ * @returns {Promise<{data:Object|null, error:string|null}>} Produto atualizado ou erro amigável
  */
 export async function updateProduct(id, updates) {
   try {
@@ -345,12 +369,20 @@ export async function updateProduct(id, updates) {
       .eq("id", id)
       .select();
 
-    if (error) throw error;
+    if (error) {
+      const dup = duplicateProductMessage(error);
+      if (dup) return { data: null, error: dup };
+      throw error;
+    }
+
     console.log("✅ Produto atualizado com sucesso!");
-    return data?.[0] || null;
+    return { data: data?.[0] || null, error: null };
   } catch (err) {
     console.error("❌ Erro ao atualizar produto:", err.message);
-    return null;
+    return {
+      data: null,
+      error: err.message || "Falha ao atualizar produto no banco",
+    };
   }
 }
 

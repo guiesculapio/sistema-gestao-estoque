@@ -19,6 +19,8 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [savingCategory, setSavingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState(null);
+  const [formError, setFormError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const initialState = {
     barcode: "",
@@ -45,12 +47,16 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
     } else {
       setFormData(initialState);
     }
+    // Limpa erros ao (re)abrir o modal ou trocar de produto.
+    setFormError(null);
+    setCategoryError(null);
   }, [productToEdit, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError(null);
 
     // Garante que category_id é um inteiro válido (> 0) antes de mandar pro Supabase.
     // Sem isso, "" cairia em Number("") = 0 e quebraria a FK em categories (23503).
@@ -71,14 +77,22 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
       status: statusFinal,
     };
 
-    if (productToEdit) {
-      updateProduct(productToEdit.id, dadosProcessados);
-    } else {
-      addProduct(dadosProcessados);
+    setSaving(true);
+    const result = productToEdit
+      ? await updateProduct(productToEdit.id, dadosProcessados)
+      : await addProduct(dadosProcessados);
+    setSaving(false);
+
+    // Só fecha se salvou de verdade. Em erro (ex.: duplicata 23505), mostra
+    // a mensagem inline e mantém o modal aberto com os dados preenchidos.
+    if (!result?.success) {
+      setFormError(result?.error || "Não foi possível salvar o produto.");
+      return;
     }
 
     setFormData(initialState);
     setCategoryError(null);
+    setFormError(null);
     onClose();
   };
 
@@ -100,6 +114,14 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
 
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* BANNER DE ERRO (ex.: produto duplicado) */}
+          {formError && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
+
           {/* CAMPO: CÓDIGO DE BARRAS */}
           <div>
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase mb-1">
@@ -307,9 +329,15 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
             </button>
             <button
               type="submit"
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-sm transition-colors"
+              disabled={saving}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-sm transition-colors disabled:bg-emerald-300 disabled:cursor-not-allowed"
             >
-              <Save size={16} /> {productToEdit ? "Atualizar" : "Salvar"}
+              <Save size={16} />{" "}
+              {saving
+                ? "Salvando..."
+                : productToEdit
+                  ? "Atualizar"
+                  : "Salvar"}
             </button>
           </div>
         </form>

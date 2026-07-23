@@ -144,13 +144,14 @@ export function InventoryProvider({ children }) {
   // --- FUNÇÕES CRUD ---
   const addProduct = useCallback(async (newProduct) => {
     const payload = toSupabaseProduct(newProduct);
-    const saved = await supabaseCreateProduct(payload);
+    const { data: saved, error } = await supabaseCreateProduct(payload);
 
-    if (!saved) {
+    if (error || !saved) {
       console.error(
         "❌ addProduct: falha ao persistir no Supabase. Estado local NÃO foi atualizado."
       );
-      return { success: false, error: "Falha ao salvar produto no banco" };
+      // Repassa a mensagem específica (ex.: duplicata 23505) para a UI.
+      return { success: false, error: error || "Falha ao salvar produto no banco" };
     }
 
     const local = fromSupabaseProduct(saved);
@@ -168,13 +169,17 @@ export function InventoryProvider({ children }) {
 
   const updateProduct = useCallback(async (id, updatedData) => {
     const payload = toSupabaseUpdates(updatedData);
-    const saved = await supabaseUpdateProduct(id, payload);
+    const { data: saved, error } = await supabaseUpdateProduct(id, payload);
 
-    if (!saved) {
+    if (error || !saved) {
       console.error(
         `❌ updateProduct: falha ao atualizar produto ${id} no Supabase. Estado local NÃO foi atualizado.`
       );
-      return { success: false, error: "Falha ao atualizar produto no banco" };
+      // Repassa a mensagem específica (ex.: duplicata 23505) para a UI.
+      return {
+        success: false,
+        error: error || "Falha ao atualizar produto no banco",
+      };
     }
 
     const local = fromSupabaseProduct(saved);
