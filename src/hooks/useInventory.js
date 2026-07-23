@@ -79,8 +79,9 @@ export function useInventory() {
         throw new Error("Estoque não pode ser negativo");
       }
 
-      // Criar produto
-      const newProduct = await createProduct({
+      // Criar produto — createProduct retorna { data, error }, onde error já
+      // vem traduzido (ex.: duplicata 23505).
+      const { data: newProduct, error: createError } = await createProduct({
         name: productData.name.trim(),
         description: productData.description || null,
         sku: productData.sku || null,
@@ -101,7 +102,7 @@ export function useInventory() {
         return { success: true, product: newProduct };
       }
 
-      throw new Error("Falha ao criar produto");
+      throw new Error(createError || "Falha ao criar produto");
     } catch (err) {
       const errorMessage = err.message || "Erro ao adicionar produto";
       setError(errorMessage);
@@ -260,7 +261,12 @@ export function useInventory() {
     try {
       setError(null);
 
-      const updated = await updateProduct(productId, updates);
+      // updateProduct retorna { data, error }, com error já traduzido
+      // (ex.: duplicata 23505).
+      const { data: updated, error: updateError } = await updateProduct(
+        productId,
+        updates
+      );
 
       if (updated) {
         setProducts((prev) =>
@@ -269,7 +275,7 @@ export function useInventory() {
         return { success: true, product: updated };
       }
 
-      throw new Error("Falha ao atualizar produto");
+      throw new Error(updateError || "Falha ao atualizar produto");
     } catch (err) {
       const errorMessage = err.message || "Erro ao atualizar produto";
       setError(errorMessage);
