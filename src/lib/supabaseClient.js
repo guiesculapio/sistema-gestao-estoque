@@ -348,7 +348,29 @@ export async function createProduct(product) {
     }
 
     console.log("✅ Produto criado com sucesso!");
-    return { data: data?.[0] || null, error: null };
+    const created = data?.[0] || null;
+
+    // Auditoria (não crítica): registra a entrada inicial de estoque como
+    // movimento type='IN', no mesmo formato dos OUT de venda. Se falhar, o
+    // produto permanece criado — createInventoryMovement retorna null sem lançar.
+    if (created?.id) {
+      const initialQty = Number(created.current_stock) || 0;
+      if (initialQty > 0) {
+        const movement = await createInventoryMovement({
+          product_id: created.id,
+          type: "IN",
+          quantity: initialQty,
+          reason: "Cadastro inicial",
+        });
+        if (!movement) {
+          console.error(
+            "⚠️ Produto criado, mas falhou ao registrar entrada inicial (type='IN') em inventory_movements."
+          );
+        }
+      }
+    }
+
+    return { data: created, error: null };
   } catch (err) {
     console.error("❌ Erro ao criar produto:", err.message);
     return { data: null, error: err.message || "Falha ao salvar produto no banco" };
@@ -363,6 +385,13 @@ export async function createProduct(product) {
  */
 export async function updateProduct(id, updates) {
   try {
+    // Captura a quantidade ANTERIOR antes do UPDATE para detectar reposição.
+    const { data: atual } = await supabase
+      .from("products")
+      .select("current_stock")
+      .eq("id", id)
+      .single();
+
     const { data, error } = await supabase
       .from("products")
       .update(updates)
@@ -376,7 +405,31 @@ export async function updateProduct(id, updates) {
     }
 
     console.log("✅ Produto atualizado com sucesso!");
-    return { data: data?.[0] || null, error: null };
+    const updated = data?.[0] || null;
+
+    // Auditoria (não crítica): se a quantidade AUMENTOU, registra a diferença
+    // como movimento type='IN'. Saída manual (diferença <= 0) não é rastreada
+    // aqui. Falha no movimento não reverte o UPDATE (retorna null sem lançar).
+    if ("current_stock" in updates) {
+      const qtdAnterior = Number(atual?.current_stock) || 0;
+      const qtdNova = Number(updates.current_stock) || 0;
+      const diferenca = qtdNova - qtdAnterior;
+      if (diferenca > 0) {
+        const movement = await createInventoryMovement({
+          product_id: id,
+          type: "IN",
+          quantity: diferenca,
+          reason: "Reposição de estoque",
+        });
+        if (!movement) {
+          console.error(
+            "⚠️ Produto atualizado, mas falhou ao registrar reposição (type='IN') em inventory_movements."
+          );
+        }
+      }
+    }
+
+    return { data: updated, error: null };
   } catch (err) {
     console.error("❌ Erro ao atualizar produto:", err.message);
     return {
@@ -431,6 +484,83 @@ export async function createInventoryMovement(movement) {
     console.error("❌ Erro ao registrar movimentação:", err.message);
     return null;
   }
+}
+
+/**
+ * Buscar as entradas de mercadoria (inventory_movements type='IN') do usuário
+ * logado dentro de um intervalo de datas, já com os dados do produto e categoria
+ * embutidos para alimentar o PDF de entradas.
+ * @param {{startDate:string, endDate:string}} range - datas no formato YYYY-MM-DD
+ * @returns {Promise<{data:Array|null, error:string|null}>}
+ */
+export async function fetchInboundMovements({ startDate, endDate }) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError || !user) throw new Error("Sessão expirada.");
+
+  const { data, error } = await supabase
+    .from("inventory_movements")
+    .select(
+      `
+      id,
+      created_at,
+      quantity,
+      products (
+        name,
+        cost_price,
+        categories ( name )
+      )
+    `
+    )
+    .eq("user_id", user.id)
+    .eq("type", "IN")
+    .gte("created_at", startDate + "T00:00:00")
+    .lte("created_at", endDate + "T23:59:59")
+    .order("created_at", { ascending: false });
+
+  if (error) return { data: null, error: error.message };
+  return { data, error: null };
+}
+
+/**
+ * Buscar as saídas de mercadoria (inventory_movements type='OUT') do usuário
+ * logado dentro de um intervalo de datas, já com os dados do produto e categoria
+ * embutidos para alimentar o PDF de saídas. Usa `price` (preço de venda) porque
+ * saída representa faturamento, não custo.
+ * @param {{startDate:string, endDate:string}} range - datas no formato YYYY-MM-DD
+ * @returns {Promise<{data:Array|null, error:string|null}>}
+ */
+export async function fetchOutboundMovements({ startDate, endDate }) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError || !user) throw new Error("Sessão expirada.");
+
+  const { data, error } = await supabase
+    .from("inventory_movements")
+    .select(
+      `
+      id,
+      created_at,
+      quantity,
+      products (
+        name,
+        price,
+        categories ( name )
+      )
+    `
+    )
+    .eq("user_id", user.id)
+    .eq("type", "OUT")
+    .gte("created_at", startDate + "T00:00:00")
+    .lte("created_at", endDate + "T23:59:59")
+    .order("created_at", { ascending: false });
+
+  if (error) return { data: null, error: error.message };
+  return { data, error: null };
 }
 
 /**
