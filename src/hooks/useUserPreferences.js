@@ -43,9 +43,18 @@ export function useUserPreferences() {
     };
   }, [load]);
 
-  const updatePreferences = useCallback(async (threshold) => {
+  // Aceita tanto um número (compat: só o limiar de estoque) quanto um objeto
+  // com qualquer subconjunto de campos ({ low_stock_threshold, profit_goal,
+  // profit_goal_start, profit_goal_end }). Mescla o resultado ao estado atual
+  // para não perder campos que não vieram no update.
+  const updatePreferences = useCallback(async (patch) => {
+    const payload =
+      typeof patch === "object" && patch !== null
+        ? patch
+        : { low_stock_threshold: patch };
+
     const { preferences: saved, error: updateError } =
-      await supabaseUpdateUserPreferences(threshold);
+      await supabaseUpdateUserPreferences(payload);
 
     if (updateError || !saved) {
       return {
@@ -54,7 +63,7 @@ export function useUserPreferences() {
       };
     }
 
-    setPreferences(saved);
+    setPreferences((prev) => ({ ...prev, ...saved }));
     return { success: true, preferences: saved };
   }, []);
 

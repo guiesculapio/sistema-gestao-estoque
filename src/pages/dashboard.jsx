@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { useInventory } from "../hooks/useInventory"; // ✅ NOVO HOOK COM SUPABASE
 import { useUserPreferences } from "../hooks/useUserPreferences";
+import ProfitGoalBar from "../components/ProfitGoalBar";
 import { isLowStock } from "../lib/stock";
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   Cell,
@@ -196,7 +196,6 @@ export default function Dashboard() {
     stats,
     recordOutbound,
     clearError,
-    outboundHistory,
   } = useInventory();
 
   const { preferences } = useUserPreferences();
@@ -270,110 +269,6 @@ export default function Dashboard() {
       dadosCategoria,
     };
   }, [products, stats, preferences]);
-
-  // --- HISTÓRICO REAL DE VENDAS AGRUPADO POR MÊS ---
-  const tendenciaData = useMemo(() => {
-    console.log("🔍 [DIAG] tendenciaData inputs:", {
-      outboundHistoryLen: outboundHistory?.length ?? 0,
-      productsLen: products?.length ?? 0,
-      tzOffsetMin: new Date().getTimezoneOffset(),
-      hojeLocal: new Date().toString(),
-    });
-
-    if (!outboundHistory || outboundHistory.length === 0) {
-      console.log("🔍 [DIAG] tendenciaData → vazio (sem outboundHistory)");
-      return [];
-    }
-    if (!products || products.length === 0) {
-      console.log("🔍 [DIAG] tendenciaData → vazio (sem products)");
-      return [];
-    }
-
-    const monthNames = [
-      "Jan",
-      "Fev",
-      "Mar",
-      "Abr",
-      "Mai",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Set",
-      "Out",
-      "Nov",
-      "Dez",
-    ];
-
-    // Lookup de preço por product_id — evita dependência do embed PostgREST
-    const priceById = new Map(
-      products.map((p) => [p.id, Number(p.price) || 0])
-    );
-
-    let descartadasData = 0;
-    let descartadasReceita = 0;
-    const buckets = new Map();
-    const trace = [];
-
-    for (const mov of outboundHistory) {
-      // Parse defensivo da data (Supabase devolve ISO 8601 com timezone)
-      const date = new Date(mov.created_at);
-      if (Number.isNaN(date.getTime())) {
-        descartadasData++;
-        continue;
-      }
-
-      const price = priceById.get(mov.product_id) ?? 0;
-      const qty = Number(mov.quantity) || 0;
-      const revenue = qty * price;
-
-      if (trace.length < 5) {
-        trace.push({
-          rawCreatedAt: mov.created_at,
-          parsedISO: date.toISOString(),
-          parsedLocal: date.toString(),
-          year: date.getFullYear(),
-          month: date.getMonth(),
-          product_id: mov.product_id,
-          priceFromMap: price,
-          qty,
-          revenue,
-        });
-      }
-
-      if (revenue <= 0) {
-        descartadasReceita++;
-        continue;
-      }
-
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      const key = `${year}-${String(month).padStart(2, "0")}`;
-
-      if (!buckets.has(key)) {
-        buckets.set(key, {
-          sortKey: key,
-          m: `${monthNames[month]}/${String(year).slice(-2)}`,
-          v: 0,
-        });
-      }
-      buckets.get(key).v += revenue;
-    }
-
-    const result = Array.from(buckets.values())
-      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-      .map(({ m, v }) => ({ m, v }));
-
-    console.log("🔍 [DIAG] tendenciaData processamento:", {
-      totalMov: outboundHistory.length,
-      descartadasPorData: descartadasData,
-      descartadasPorReceita: descartadasReceita,
-      bucketsGerados: result.length,
-      trace,
-      result,
-    });
-
-    return result;
-  }, [outboundHistory, products]);
 
   // Exemplo de como registrar uma venda
   const handleSaleExample = async () => {
@@ -485,71 +380,8 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* Gráfico de Histórico Real de Vendas */}
-        <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
-          <h3 className="text-sm font-bold text-slate-700 mb-4">
-            Histórico de Vendas
-          </h3>
-          {tendenciaData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={tendenciaData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#f1f5f9"
-                />
-                <XAxis dataKey="m" tick={{ fontSize: 11 }} axisLine={false} />
-                <YAxis
-                  tickFormatter={brlK}
-                  tick={{ fontSize: 11 }}
-                  axisLine={false}
-                />
-                <Tooltip
-                  formatter={(value) => [brl(value), "Faturamento"]}
-                  labelStyle={{ color: "#475569", fontWeight: 600 }}
-                />
-                <Bar dataKey="v" fill="#14b8a6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-[250px] text-center">
-              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-                <TrendingUp size={22} className="text-slate-400" />
-              </div>
-              <p className="text-sm font-medium text-slate-600">
-                Sem histórico de vendas ainda
-              </p>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                Quando você registrar saídas (vendas), o faturamento mensal
-                aparecerá aqui automaticamente.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Lista Real de Críticos */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
-          <div className="px-4 py-4 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="text-sm font-bold text-slate-700">
-              Reposição Urgente
-            </h3>
-            <AlertTriangle size={14} className="text-amber-500" />
-          </div>
-          <div className="flex-1 px-4 divide-y divide-slate-100">
-            {dashboardStats.criticos.length > 0 ? (
-              dashboardStats.criticos.map((p, i) => (
-                <ProdutoCritico key={p.id} produto={p} rank={i + 1} />
-              ))
-            ) : (
-              <div className="py-8 text-center text-slate-400">
-                <Package size={24} className="mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Todos os produtos em bom nível</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* Barra de Meta de Lucro */}
+      <ProfitGoalBar />
 
       {/* Gráfico de Categorias Real */}
       {dashboardStats.dadosCategoria.length > 0 && (
@@ -571,6 +403,28 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Lista Real de Críticos */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+        <div className="px-4 py-4 border-b border-slate-100 flex justify-between items-center">
+          <h3 className="text-sm font-bold text-slate-700">
+            Reposição Urgente
+          </h3>
+          <AlertTriangle size={14} className="text-amber-500" />
+        </div>
+        <div className="flex-1 px-4 divide-y divide-slate-100">
+          {dashboardStats.criticos.length > 0 ? (
+            dashboardStats.criticos.map((p, i) => (
+              <ProdutoCritico key={p.id} produto={p} rank={i + 1} />
+            ))
+          ) : (
+            <div className="py-8 text-center text-slate-400">
+              <Package size={24} className="mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Todos os produtos em bom nível</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

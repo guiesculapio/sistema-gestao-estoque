@@ -192,13 +192,17 @@ export async function deleteCategory(id) {
 /**
  * Buscar as preferências do usuário logado.
  * Retorna null se o usuário ainda não tem linha em user_preferences.
- * @returns {Promise<{low_stock_threshold:number}|null>}
+ * Inclui as colunas de meta de lucro (profit_goal, profit_goal_start,
+ * profit_goal_end) para alimentar a barra de meta do Dashboard.
+ * @returns {Promise<{low_stock_threshold:number, profit_goal:number|null, profit_goal_start:string|null, profit_goal_end:string|null}|null>}
  */
 export async function getUserPreferences() {
   try {
     const { data, error } = await supabase
       .from("user_preferences")
-      .select("low_stock_threshold")
+      .select(
+        "low_stock_threshold, profit_goal, profit_goal_start, profit_goal_end"
+      )
       .maybeSingle();
 
     if (error) throw error;
@@ -210,30 +214,48 @@ export async function getUserPreferences() {
 }
 
 /**
- * Atualizar o limiar global de estoque baixo do usuário logado.
- * Usa upsert por user_id para cobrir tanto o caso de já existir seed
- * quanto o de linha ausente (novo usuário sem trigger).
- * @param {number} threshold
- * @returns {Promise<{preferences:{low_stock_threshold:number}|null, error:string|null}>}
+ * Atualizar as preferências do usuário logado.
+ * Aceita um objeto com qualquer subconjunto dos campos de preferências;
+ * apenas os campos presentes no objeto são enviados (spread), preservando
+ * os demais valores já gravados. Usa upsert por user_id para cobrir tanto
+ * o caso de já existir seed quanto o de linha ausente (novo usuário).
+ * Usa getUser() — nunca getSession().
+ *
+ * @param {{low_stock_threshold?:number, profit_goal?:number, profit_goal_start?:string, profit_goal_end?:string}} prefs
+ * @returns {Promise<{preferences:Object|null, error:string|null}>}
  */
-export async function updateUserPreferences(threshold) {
-  const value = Number(threshold);
-  if (!Number.isInteger(value) || value < 0) {
-    return {
-      preferences: null,
-      error: "O limiar deve ser um número inteiro maior ou igual a zero",
-    };
+export async function updateUserPreferences(prefs) {
+  const patch = prefs && typeof prefs === "object" ? prefs : {};
+
+  // Validação leve dos campos presentes.
+  if ("low_stock_threshold" in patch) {
+    const value = Number(patch.low_stock_threshold);
+    if (!Number.isInteger(value) || value < 0) {
+      return {
+        preferences: null,
+        error: "O limiar deve ser um número inteiro maior ou igual a zero",
+      };
+    }
+  }
+  if ("profit_goal" in patch) {
+    const goal = Number(patch.profit_goal);
+    if (!Number.isFinite(goal) || goal < 0) {
+      return {
+        preferences: null,
+        error: "A meta de lucro deve ser um número maior ou igual a zero",
+      };
+    }
   }
 
   const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (sessionError || !session?.user) {
+  if (userError || !user) {
     console.error(
-      "❌ updateUserPreferences abortado: sem sessão ativa.",
-      sessionError
+      "❌ updateUserPreferences abortado: sem usuário autenticado.",
+      userError
     );
     return {
       preferences: null,
@@ -244,10 +266,12 @@ export async function updateUserPreferences(threshold) {
   const { data, error } = await supabase
     .from("user_preferences")
     .upsert(
-      { user_id: session.user.id, low_stock_threshold: value },
+      { user_id: user.id, ...patch },
       { onConflict: "user_id" }
     )
-    .select("low_stock_threshold");
+    .select(
+      "low_stock_threshold, profit_goal, profit_goal_start, profit_goal_end"
+    );
 
   if (error) {
     console.error("❌ Erro ao atualizar preferências:", error.message, error);
