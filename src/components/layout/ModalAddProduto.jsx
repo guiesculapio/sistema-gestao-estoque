@@ -6,6 +6,11 @@ import { useCategories } from "../../hooks/useCategories";
 import { useUserPreferences } from "../../hooks/useUserPreferences";
 import { computeStockStatus } from "../../lib/stock";
 
+const INPUT_CLASS =
+  "w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-sm placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 transition-all";
+
+const LABEL_CLASS = "text-slate-700 text-xs font-semibold mb-1.5 block";
+
 export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
   const { addProduct, updateProduct } = useInventory();
   const {
@@ -97,12 +102,12 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-lg p-6">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 className="text-lg font-bold text-slate-800">
-            {productToEdit ? "Editar Produto" : "Novo Produto"}
+        <div className="flex items-start justify-between mb-1">
+          <h3 className="text-slate-900 font-black text-lg">
+            {productToEdit ? "Editar Produto" : "Adicionar Produto"}
           </h3>
           <button
             onClick={onClose}
@@ -111,28 +116,35 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
             <X size={20} />
           </button>
         </div>
+        <p className="text-slate-400 text-sm mb-5">
+          {productToEdit
+            ? "Atualize as informações do produto."
+            : "Preencha os dados para cadastrar um novo produto."}
+        </p>
 
         {/* Formulário */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* BANNER DE ERRO (ex.: produto duplicado) */}
           {formError && (
-            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-3 py-2.5 mb-4">
+              <AlertCircle size={16} className="flex-shrink-0" />
               <span>{formError}</span>
             </div>
           )}
 
           {/* CAMPO: CÓDIGO DE BARRAS */}
           <div>
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase mb-1">
-              <Barcode size={14} className="text-slate-400" />
-              Código de Barras / SKU
+            <label className={LABEL_CLASS}>
+              <span className="inline-flex items-center gap-2">
+                <Barcode size={14} className="text-slate-400" />
+                Código de Barras / SKU
+              </span>
             </label>
             <input
               required
               type="text"
               placeholder="Bipe o código ou digite..."
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400 outline-none transition-all text-sm font-mono"
+              className={`${INPUT_CLASS} font-mono`}
               value={formData.barcode}
               onChange={(e) =>
                 setFormData({ ...formData, barcode: e.target.value })
@@ -141,13 +153,11 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">
-              Nome do Produto
-            </label>
+            <label className={LABEL_CLASS}>Nome do Produto</label>
             <input
               required
               type="text"
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400 outline-none transition-all text-sm"
+              className={INPUT_CLASS}
               value={formData.nome}
               onChange={(e) =>
                 setFormData({ ...formData, nome: e.target.value })
@@ -157,8 +167,8 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-slate-500 uppercase">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-slate-700 text-xs font-semibold block">
                   Categoria
                 </label>
                 {!creatingCategory && (
@@ -168,7 +178,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
                       setCreatingCategory(true);
                       setCategoryError(null);
                     }}
-                    className="text-[11px] font-medium text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-0.5"
+                    className="text-[11px] font-medium text-brand hover:text-brand-hover inline-flex items-center gap-0.5"
                   >
                     <Plus size={11} /> Nova
                   </button>
@@ -184,7 +194,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     disabled={savingCategory}
-                    className="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400 outline-none transition-all text-sm disabled:bg-slate-100"
+                    className={`flex-1 min-w-0 ${INPUT_CLASS} disabled:bg-slate-50`}
                   />
                   <button
                     type="button"
@@ -205,7 +215,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
                         setCategoryError(result.error);
                       }
                     }}
-                    className="px-2 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+                    className="px-2 py-2 rounded-xl bg-brand hover:bg-brand-hover text-white disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                     aria-label="Salvar categoria"
                   >
                     <Check size={14} />
@@ -218,7 +228,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
                       setCategoryError(null);
                     }}
                     disabled={savingCategory}
-                    className="px-2 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                    className="px-2 py-2 rounded-xl bg-white border border-slate-200 hover:border-brand text-slate-600 transition-all"
                     aria-label="Cancelar"
                   >
                     <X size={14} />
@@ -228,7 +238,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
                 <select
                   required
                   disabled={loadingCategories || categories.length === 0}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400 outline-none transition-all text-sm disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                  className={`${INPUT_CLASS} disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed`}
                   value={formData.categoria_id ?? ""}
                   onChange={(e) => {
                     const raw = e.target.value;
@@ -255,7 +265,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
               )}
 
               {categoryError && (
-                <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
                   <AlertCircle size={11} /> {categoryError}
                 </p>
               )}
@@ -268,12 +278,10 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
                 )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">
-                Quantidade
-              </label>
+              <label className={LABEL_CLASS}>Quantidade</label>
               <input
                 type="number"
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400 outline-none transition-all text-sm"
+                className={INPUT_CLASS}
                 value={formData.qtd}
                 onChange={(e) =>
                   setFormData({ ...formData, qtd: Number(e.target.value) })
@@ -284,13 +292,11 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">
-                Custo (R$)
-              </label>
+              <label className={LABEL_CLASS}>Custo (R$)</label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400 outline-none transition-all text-sm"
+                className={INPUT_CLASS}
                 value={formData.precoCusto}
                 onChange={(e) =>
                   setFormData({
@@ -301,13 +307,11 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">
-                Venda (R$)
-              </label>
+              <label className={LABEL_CLASS}>Venda (R$)</label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400 outline-none transition-all text-sm"
+                className={INPUT_CLASS}
                 value={formData.precoVenda}
                 onChange={(e) =>
                   setFormData({
@@ -319,25 +323,21 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              className="bg-white border border-slate-200 text-slate-600 font-medium rounded-xl px-4 py-2 hover:border-brand hover:text-slate-900 transition-all duration-150"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-sm transition-colors disabled:bg-emerald-300 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 bg-brand text-white font-bold rounded-xl px-4 py-2 hover:bg-brand-hover transition-colors duration-150 disabled:bg-slate-300 disabled:cursor-not-allowed"
             >
-              <Save size={16} />{" "}
-              {saving
-                ? "Salvando..."
-                : productToEdit
-                  ? "Atualizar"
-                  : "Salvar"}
+              <Save size={16} />
+              {saving ? "Salvando..." : productToEdit ? "Atualizar" : "Salvar"}
             </button>
           </div>
         </form>

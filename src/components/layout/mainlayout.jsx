@@ -8,13 +8,17 @@ const MainLayout = () => {
       {/* Sidebar fixa à esquerda */}
       <Sidebar />
 
-      <div className="flex-1 flex flex-col">
-        {/* Header fixo no topo */}
-        <Header />
+      <div className="flex flex-col flex-1 gap-3 p-3 bg-slate-100 min-w-0">
+        {/* Header flutuante */}
+        <div className="bg-white rounded-2xl border border-slate-200 px-6 py-3 flex-shrink-0">
+          <Header />
+        </div>
 
-        {/* Área de conteúdo que muda conforme a rota */}
-        <main className="p-6 overflow-y-auto">
-          <Outlet />
+        {/* Área de conteúdo com scroll */}
+        <main className="flex-1 overflow-y-auto rounded-2xl">
+          <div className="p-2">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

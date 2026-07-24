@@ -4,7 +4,6 @@ import {
   Home,
   BarChart2,
   Settings,
-  Layers,
   ShoppingCart,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
@@ -30,29 +29,23 @@ function NavItem({ to, icon: Icon, label }) {
       to={to}
       className={({ isActive }) =>
         [
-          "group flex items-center gap-3 px-3 py-2.5 rounded-lg",
-          "text-sm font-medium transition-all duration-150 ease-out",
+          "flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl",
+          "text-sm transition-colors duration-150",
           isActive
-            ? "bg-teal-500/15 text-teal-300 shadow-sm"
-            : "text-slate-400 hover:bg-slate-700/60 hover:text-slate-100",
+            ? "bg-brand/10 text-brand font-semibold border-l-2 border-brand"
+            : "text-slate-400 hover:text-white hover:bg-slate-800 font-medium",
         ].join(" ")
       }
     >
       {({ isActive }) => (
         <>
           <Icon
-            size={18}
-            className={`flex-shrink-0 transition-colors duration-150 ${
-              isActive
-                ? "text-teal-400"
-                : "text-slate-500 group-hover:text-slate-300"
+            size={16}
+            className={`flex-shrink-0 ${
+              isActive ? "text-brand" : "text-slate-500"
             }`}
           />
           <span className="truncate">{label}</span>
-
-          {isActive && (
-            <span className="ml-auto w-1 h-4 rounded-full bg-teal-400 flex-shrink-0" />
-          )}
         </>
       )}
     </NavLink>
@@ -66,56 +59,46 @@ export default function Sidebar() {
   const displayEmail = email.length > 22 ? email.slice(0, 22) + "..." : email;
 
   return (
-    <aside
-      className="
-        w-60 flex-shrink-0 flex flex-col
-        h-[calc(100vh-1.5rem)] sticky top-3
-        m-3
-        bg-slate-900 border border-slate-700/50
-        rounded-2xl shadow-xl shadow-slate-900/10
-        select-none
-      "
-    >
-      {/* ── Logotipo / Marca (Copiloto SaaS) ── */}
-      <div className="flex items-center gap-2.5 px-5 h-16 border-b border-slate-700/50">
-        <div className="w-7 h-7 rounded-lg bg-teal-500 flex items-center justify-center flex-shrink-0">
-          <Layers size={15} className="text-slate-900" strokeWidth={2.5} />
-        </div>
-        <div className="leading-tight">
-          <p className="text-white text-sm font-semibold tracking-tight">
-            Estoklab
-          </p>
-          <p className="text-slate-500 text-[10px] font-mono uppercase tracking-widest">
-            v1.0
-          </p>
-        </div>
-      </div>
-
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-        <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
-          Menu Principal
-        </p>
-        {NAV_ITEMS.map((item) => (
-          <NavItem key={item.to} {...item} />
-        ))}
-      </nav>
-
-      <div className="px-3 py-4 border-t border-slate-700/50 space-y-0.5">
-        {BOTTOM_ITEMS.map((item) => (
-          <NavItem key={item.to} {...item} />
-        ))}
-
-        {/* Card de usuário */}
-        <div className="mt-3 flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-800/60 border border-slate-700/40">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-[10px] font-bold text-white">{initials}</span>
-          </div>
-          <div className="leading-tight min-w-0">
-            <p className="text-slate-200 text-xs font-medium truncate">{displayEmail}</p>
-            <p className="text-slate-500 text-[10px] truncate"></p>
+    <div className="p-3 flex-shrink-0 h-screen sticky top-0 bg-slate-100 select-none">
+      <aside className="bg-slate-900 w-56 h-full rounded-2xl flex flex-col overflow-hidden">
+        {/* ── Logotipo / Marca ── */}
+        <div className="px-4 py-5 flex items-center gap-2.5">
+          <img
+            src="/logo.jpg"
+            alt="Estoklab"
+            className="w-8 h-8 rounded-lg object-contain bg-white"
+          />
+          <div className="leading-tight">
+            <p className="text-white font-bold text-sm tracking-tight">
+              Estoklab
+            </p>
+            <p className="text-slate-500 text-[10px] font-mono">v1.0</p>
           </div>
         </div>
-      </div>
-    </aside>
+
+        <nav className="flex-1 overflow-y-auto space-y-0.5">
+          <p className="text-slate-500 text-[10px] uppercase tracking-widest font-semibold px-4 mb-1 mt-4">
+            Menu Principal
+          </p>
+          {NAV_ITEMS.map((item) => (
+            <NavItem key={item.to} {...item} />
+          ))}
+        </nav>
+
+        <div className="border-t border-slate-800 p-3">
+          {BOTTOM_ITEMS.map((item) => (
+            <NavItem key={item.to} {...item} />
+          ))}
+
+          {/* Card de usuário */}
+          <div className="mt-2 flex items-center gap-2.5 px-3 py-2.5 bg-slate-800 rounded-xl">
+            <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold">
+              {initials}
+            </div>
+            <p className="text-slate-400 text-xs truncate">{displayEmail}</p>
+          </div>
+        </div>
+      </aside>
+    </div>
   );
 }

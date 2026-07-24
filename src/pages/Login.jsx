@@ -27,7 +27,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-          <h1 className="text-lg font-bold text-slate-800">Gestão de Estoque</h1>
+          <h1 className="text-lg font-bold text-slate-800">Estoklab</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Entre com seu email e senha
           </p>

@@ -24,19 +24,12 @@ export default function Header() {
     : "??";
 
   return (
-    <header
-      className="
-        h-16 flex-shrink-0 flex items-center justify-between
-        px-6 gap-4
-        bg-white border-b border-slate-200/80
-        z-10
-      "
-    >
+    <header className="flex items-center justify-between gap-4">
       <div className="hidden sm:block min-w-0">
-        <h1 className="text-slate-800 text-base font-semibold truncate tracking-tight">
-          Gestão de Estoque
+        <h1 className="text-slate-900 text-base font-bold truncate tracking-tight">
+          Estoklab
         </h1>
-        <p className="text-slate-400 text-xs">
+        <p className="text-slate-400 text-sm">
           {new Date().toLocaleDateString("pt-BR", {
             weekday: "long",
             day: "numeric",
@@ -50,17 +43,17 @@ export default function Header() {
       <div className="relative flex items-center gap-1.5" ref={menuRef}>
         <button
           onClick={() => setMenuOpen((v) => !v)}
-          className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-lg hover:bg-slate-100 transition-colors duration-150 group"
+          className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-md hover:bg-slate-50 transition-colors duration-150 group"
           aria-label="Menu do usuário"
           aria-expanded={menuOpen}
         >
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <span className="text-[10px] font-bold text-white leading-none">
+          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-bold text-white leading-none">
               {initials}
             </span>
           </div>
 
-          <span className="hidden md:block text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors max-w-[180px] truncate">
+          <span className="hidden md:block text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors max-w-[180px] truncate">
             {email || "Usuário"}
           </span>
 
@@ -73,15 +66,15 @@ export default function Header() {
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
+          <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg border border-slate-200 py-1 z-20">
             <button
               onClick={async () => {
                 setMenuOpen(false);
                 await signOut();
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
             >
-              <LogOut size={14} className="text-slate-500" />
+              <LogOut size={14} className="text-slate-400" />
               Sair
             </button>
           </div>

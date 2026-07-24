@@ -14,17 +14,9 @@ import {
   FileDown,
   FileSpreadsheet,
   ChevronDown,
-  TrendingUp,
-  DollarSign,
-  Package,
   BarChart2,
-  ArrowUpRight,
-  ArrowDownRight,
-  Medal,
-  Clock,
-  Info,
-  ShoppingCart,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 // Bibliotecas de exportação
@@ -45,6 +37,9 @@ const PERIODOS = [
   { label: "Últimos 90 dias", value: "90d", days: 90 },
   { label: "Este ano", value: "1y", days: 365 },
 ];
+
+const INPUT_CLASS =
+  "w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-sm placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 transition-all";
 
 const brl = (v) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -69,7 +64,7 @@ function PeriodSelector({ value, onChange }) {
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm transition-colors"
+        className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 font-medium rounded-xl px-3.5 py-2 text-sm hover:border-brand hover:text-slate-900 transition-all duration-150"
       >
         <BarChart2 size={14} className="text-slate-400" />
         {selected?.label}
@@ -81,7 +76,7 @@ function PeriodSelector({ value, onChange }) {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1.5 w-44 bg-white border border-slate-200 rounded-lg shadow-lg z-20 py-1">
+          <div className="absolute left-0 top-full mt-1.5 w-44 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1">
             {PERIODOS.map((p) => (
               <button
                 key={p.value}
@@ -89,7 +84,7 @@ function PeriodSelector({ value, onChange }) {
                   onChange(p.value);
                   setOpen(false);
                 }}
-                className={`w-full text-left px-3.5 py-2 text-sm transition-colors ${p.value === value ? "bg-teal-50 text-teal-700 font-semibold" : "text-slate-600 hover:bg-slate-50"}`}
+                className={`w-full text-left px-3.5 py-2 text-sm transition-colors ${p.value === value ? "bg-brand/10 text-brand font-semibold" : "text-slate-600 hover:bg-slate-50"}`}
               >
                 {p.label}
               </button>
@@ -108,36 +103,36 @@ function DualBarTooltip({ active, payload, label }) {
   const lucro = venda - custo;
   const mg = venda > 0 ? (lucro / venda) * 100 : 0;
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-3 shadow-xl text-xs min-w-[160px]">
-      <p className="text-slate-300 font-semibold mb-2 pb-1.5 border-b border-slate-700">
+    <div className="bg-white border border-slate-200 rounded-lg px-3.5 py-3 shadow-lg text-xs min-w-[160px]">
+      <p className="text-slate-900 font-semibold mb-2 pb-1.5 border-b border-slate-100">
         {label}
       </p>
       <div className="space-y-1.5">
         <div className="flex justify-between gap-6">
-          <span className="flex items-center gap-1.5 text-blue-300">
-            <span className="w-2 h-2 rounded-sm bg-blue-400" /> Custo
+          <span className="flex items-center gap-1.5 text-blue-600">
+            <span className="w-2 h-2 rounded-sm bg-blue-500" /> Custo
           </span>
-          <span className="text-white font-bold tabular-nums">
+          <span className="text-slate-900 font-bold tabular-nums">
             {brlK(custo)}
           </span>
         </div>
         <div className="flex justify-between gap-6">
-          <span className="flex items-center gap-1.5 text-emerald-300">
-            <span className="w-2 h-2 rounded-sm bg-emerald-400" /> Venda
+          <span className="flex items-center gap-1.5 text-brand">
+            <span className="w-2 h-2 rounded-sm bg-brand" /> Venda
           </span>
-          <span className="text-white font-bold tabular-nums">
+          <span className="text-slate-900 font-bold tabular-nums">
             {brlK(venda)}
           </span>
         </div>
-        <div className="pt-1.5 mt-1 border-t border-slate-700 flex justify-between gap-6">
+        <div className="pt-1.5 mt-1 border-t border-slate-100 flex justify-between gap-6">
           <span className="text-slate-400">Lucro</span>
-          <span className="text-emerald-400 font-bold tabular-nums">
+          <span className="text-brand font-bold tabular-nums">
             {brlK(lucro)}
           </span>
         </div>
         <div className="flex justify-between gap-6">
           <span className="text-slate-400">Margem</span>
-          <span className="text-emerald-400 font-bold">{pct(mg)}</span>
+          <span className="text-brand font-bold">{pct(mg)}</span>
         </div>
       </div>
     </div>
@@ -146,20 +141,20 @@ function DualBarTooltip({ active, payload, label }) {
 
 function RankBadge({ rank }) {
   const styles = [
-    "bg-amber-400 text-amber-900",
+    "bg-amber-400 text-white",
     "bg-slate-300 text-slate-700",
-    "bg-orange-300 text-orange-800",
+    "bg-orange-300 text-white",
   ];
   return (
     <span
-      className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold flex-shrink-0 ${styles[rank - 1] ?? "bg-slate-100 text-slate-500"}`}
+      className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-black flex-shrink-0 ${styles[rank - 1] ?? "bg-slate-100 text-slate-500"}`}
     >
-      {rank === 1 ? <Medal size={10} /> : rank}
+      {rank}
     </span>
   );
 }
 
-function MiniBar({ value, max, color = "bg-emerald-400" }) {
+function MiniBar({ value, max, color = "bg-brand" }) {
   const w = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
     <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -171,55 +166,16 @@ function MiniBar({ value, max, color = "bg-emerald-400" }) {
   );
 }
 
-function KpiCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  positive,
-  colorScheme = "teal",
-}) {
-  const schemes = {
-    teal: { wrap: "bg-teal-50", val: "text-teal-700", ico: "text-teal-500" },
-    blue: { wrap: "bg-blue-50", val: "text-blue-700", ico: "text-blue-500" },
-    emerald: {
-      wrap: "bg-emerald-50",
-      val: "text-emerald-700",
-      ico: "text-emerald-500",
-    },
-    violet: {
-      wrap: "bg-violet-50",
-      val: "text-violet-700",
-      ico: "text-violet-500",
-    },
-  };
-  const s = schemes[colorScheme];
+function KpiCard({ label, value, sub }) {
   return (
-    <div
-      className={`${s.wrap} rounded-xl p-4 border border-white/80 shadow-sm`}
-    >
-      <div className="flex items-start justify-between mb-2">
-        <Icon size={16} className={s.ico} />
-        {positive !== undefined && (
-          <span
-            className={`text-[10px] font-bold flex items-center gap-0.5 ${positive ? "text-emerald-600" : "text-red-500"}`}
-          >
-            {positive ? (
-              <ArrowUpRight size={10} />
-            ) : (
-              <ArrowDownRight size={10} />
-            )}
-            {positive ? "Saudável" : "Revisar"}
-          </span>
-        )}
-      </div>
-      <p
-        className={`text-xl font-bold ${s.val} tabular-nums leading-none mb-1`}
-      >
+    <div className="bg-white rounded-xl border border-slate-200 p-5 hover:border-brand hover:scale-[1.02] transition-all duration-200">
+      <p className="text-slate-500 text-[10px] uppercase tracking-widest font-semibold mt-2">
+        {label}
+      </p>
+      <p className="text-slate-900 font-black text-2xl tracking-tight leading-none">
         {value}
       </p>
-      <p className="text-xs font-medium text-slate-600">{label}</p>
-      {sub && <p className="text-[11px] text-slate-400 mt-0.5">{sub}</p>}
+      {sub && <p className="text-slate-400 text-xs mt-1">{sub}</p>}
     </div>
   );
 }
@@ -373,14 +329,14 @@ export default function Relatorios() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="bg-slate-50 space-y-6">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+          <h2 className="text-slate-900 font-black text-xl tracking-tight">
             Relatórios de Performance
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-slate-400 text-sm mt-0.5">
             Análise financeira baseada em vendas reais
           </p>
         </div>
@@ -389,13 +345,13 @@ export default function Relatorios() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPdfModal(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm transition-colors"
+              className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-600 font-medium rounded-xl px-3.5 py-2 text-sm hover:border-brand hover:text-slate-900 transition-all duration-150"
             >
-              <FileDown size={14} className="text-red-400" /> PDF
+              <FileDown size={14} className="text-slate-400" /> PDF
             </button>
             <button
               onClick={handleExportExcel}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-[.98] rounded-lg shadow-sm transition-all"
+              className="flex items-center gap-1.5 bg-brand text-white font-bold rounded-xl px-3.5 py-2 text-sm hover:bg-brand-hover transition-colors duration-150"
             >
               <FileSpreadsheet size={14} /> Excel
             </button>
@@ -404,24 +360,24 @@ export default function Relatorios() {
       </div>
 
       {/* Gráfico de Performance Real */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 hover:border-brand transition-all duration-200 overflow-hidden">
         <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-slate-100 flex-wrap gap-3">
           <div>
-            <h3 className="text-sm font-bold text-slate-700">
+            <h3 className="text-slate-900 font-bold text-sm">
               Vendas vs. Custo por Categoria
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-slate-400 text-xs mt-0.5">
               Resultados para o período de{" "}
               {PERIODOS.find((p) => p.value === periodo).label}
             </p>
           </div>
           <div className="flex items-center gap-5 text-[11px] font-semibold">
-            <span className="flex items-center gap-1.5 text-blue-500">
-              <span className="w-3 h-3 rounded-sm bg-blue-400 inline-block" />{" "}
+            <span className="flex items-center gap-1.5 text-blue-600">
+              <span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" />{" "}
               Custo
             </span>
-            <span className="flex items-center gap-1.5 text-emerald-500">
-              <span className="w-3 h-3 rounded-sm bg-emerald-400 inline-block" />{" "}
+            <span className="flex items-center gap-1.5 text-brand">
+              <span className="w-3 h-3 rounded-sm bg-brand inline-block" />{" "}
               Venda
             </span>
           </div>
@@ -429,10 +385,14 @@ export default function Relatorios() {
 
         <div className="px-2 pt-4 pb-2">
           {filteredMetrics.categories.length > 0 ? (
-            <ResponsiveContainer width="100%" height={240}>
+            <ResponsiveContainer
+              width="100%"
+              height={Math.max(200, filteredMetrics.categories.length * 55)}
+            >
               <BarChart
                 data={filteredMetrics.categories}
-                margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
+                layout="vertical"
+                margin={{ top: 4, right: 20, left: 0, bottom: 4 }}
                 barCategoryGap="30%"
                 barGap={3}
               >
@@ -442,25 +402,42 @@ export default function Relatorios() {
                   vertical={false}
                 />
                 <XAxis
-                  dataKey="categoria"
-                  tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 500 }}
+                  type="number"
+                  tickFormatter={brlK}
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
                   axisLine={false}
                   tickLine={false}
-                  dy={6}
                 />
                 <YAxis
-                  tickFormatter={brlK}
-                  tick={{ fontSize: 10, fill: "#94a3b8" }}
+                  type="category"
+                  dataKey="categoria"
+                  tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
                   axisLine={false}
                   tickLine={false}
-                  width={52}
+                  width={90}
                 />
                 <Tooltip
                   content={<DualBarTooltip />}
                   cursor={{ fill: "#f8fafc" }}
                 />
-                <Bar dataKey="custo" fill="#60a5fa" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="venda" fill="#34d399" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="custo"
+                  fill="#3b82f6"
+                  barSize={16}
+                  radius={[0, 4, 4, 0]}
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationEasing="ease-out"
+                />
+                <Bar
+                  dataKey="venda"
+                  fill="#22c55e"
+                  barSize={16}
+                  radius={[0, 4, 4, 0]}
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationEasing="ease-out"
+                />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -479,17 +456,17 @@ export default function Relatorios() {
                 key={cat.categoria}
                 className="px-3.5 py-2.5 border-r border-b border-slate-100"
               >
-                <p className="text-[10px] text-slate-400 truncate mb-0.5">
+                <p className="text-slate-400 text-[10px] truncate mb-0.5">
                   {cat.categoria}
                 </p>
-                <p className="text-xs font-bold text-blue-500 tabular-nums">
+                <p className="text-blue-600 text-xs font-bold tabular-nums">
                   {brlK(cat.custo)}
                 </p>
-                <p className="text-xs font-bold text-emerald-600 tabular-nums">
+                <p className="text-brand text-xs font-bold tabular-nums">
                   {brlK(cat.venda)}
                 </p>
                 <p
-                  className={`text-[10px] font-semibold mt-0.5 ${mg >= 30 ? "text-emerald-500" : "text-amber-500"}`}
+                  className={`text-[10px] font-semibold mt-0.5 ${mg >= 30 ? "text-brand" : "text-amber-500"}`}
                 >
                   {pct(mg)} margem
                 </p>
@@ -501,16 +478,13 @@ export default function Relatorios() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Card: Top Lucro Real */}
-        <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 hover:border-brand transition-all duration-200 overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-              <TrendingUp size={14} className="text-white" strokeWidth={2.5} />
-            </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-700 leading-none">
+              <h3 className="text-slate-900 font-bold text-sm leading-none">
                 Top Lucro Real
               </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-slate-400 text-xs mt-0.5">
                 No período selecionado
               </p>
             </div>
@@ -520,20 +494,16 @@ export default function Relatorios() {
               filteredMetrics.topSelling.map((p, i) => (
                 <div
                   key={p.nome}
-                  className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50/60 transition-colors"
+                  className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors duration-150"
                 >
                   <RankBadge rank={i + 1} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-slate-700 truncate">
+                    <p className="text-slate-700 font-semibold text-sm truncate">
                       {p.nome}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <MiniBar
-                        value={p.lucroTotal}
-                        max={maxMargemReal}
-                        color="bg-emerald-400"
-                      />
-                      <span className="text-[11px] font-bold text-emerald-600 tabular-nums w-16 text-right">
+                      <MiniBar value={p.lucroTotal} max={maxMargemReal} />
+                      <span className="text-brand font-bold text-xs tabular-nums w-16 text-right">
                         {brl(p.lucroTotal)}
                       </span>
                     </div>
@@ -549,16 +519,13 @@ export default function Relatorios() {
         </div>
 
         {/* Card: Capital Preso */}
-        <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 hover:border-brand transition-all duration-200 overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100">
-            <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
-              <Clock size={14} className="text-white" strokeWidth={2.5} />
-            </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-700 leading-none">
+              <h3 className="text-slate-900 font-bold text-sm leading-none">
                 Capital Preso
               </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-slate-400 text-xs mt-0.5">
                 Itens sem nenhuma venda registrada
               </p>
             </div>
@@ -568,28 +535,28 @@ export default function Relatorios() {
               topParado.map((p, i) => (
                 <div
                   key={p.id}
-                  className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50/60 transition-colors"
+                  className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors duration-150"
                 >
                   <RankBadge rank={i + 1} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-slate-700 truncate">
+                    <p className="text-slate-700 font-semibold text-sm truncate">
                       {p.nome}
                     </p>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-slate-400 text-xs">
                       {p.qtd} unidades paradas
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-bold text-slate-700 tabular-nums">
+                    <p className="text-slate-900 font-semibold text-sm tabular-nums">
                       {brlK(p.precoCusto * p.qtd)}
                     </p>
-                    <p className="text-[10px] text-slate-400">custo total</p>
+                    <p className="text-slate-400 text-xs">custo total</p>
                   </div>
                 </div>
               ))
             ) : (
               <p className="p-10 text-center text-sm text-slate-400 italic">
-                Estoquesaudável.
+                Estoque saudável.
               </p>
             )}
           </div>
@@ -597,24 +564,20 @@ export default function Relatorios() {
       </div>
 
       {/* Resumo Financeiro Real */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 hover:border-brand transition-all duration-200 overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-wrap gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-slate-700 flex items-center justify-center">
-              <DollarSign size={14} className="text-white" strokeWidth={2.5} />
-            </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-700 leading-none">
+              <h3 className="text-slate-900 font-bold text-sm leading-none">
                 Resumo Financeiro & ROI
               </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-slate-400 text-xs mt-0.5">
                 Performance ajustada ao filtro temporal
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
-            <Info size={11} className="text-slate-400" /> ROI do Período
-            Selecionado
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+            ROI do Período Selecionado
           </div>
         </div>
 
@@ -624,46 +587,36 @@ export default function Relatorios() {
               label="Capital em Estoque"
               value={brlK(metrics.stockCost)}
               sub="Valor total hoje"
-              icon={Package}
-              colorScheme="blue"
             />
             <KpiCard
               label="Faturamento Período"
               value={brlK(filteredMetrics.totalRevenue)}
               sub="Total em vendas"
-              icon={DollarSign}
-              colorScheme="emerald"
-              positive={true}
             />
             <KpiCard
               label="Lucro Período"
               value={brlK(filteredMetrics.totalProfit)}
               sub="Líquido real"
-              icon={TrendingUp}
-              colorScheme="teal"
-              positive={filteredMetrics.totalProfit > 0}
             />
             <KpiCard
               label="Vendas Totais"
               value={filteredMetrics.salesCount}
               sub="Transações"
-              icon={ShoppingCart}
-              colorScheme="violet"
             />
           </div>
 
-          <div className="rounded-xl bg-slate-50 border border-slate-200/60 p-4">
+          <div className="bg-white rounded-xl border border-slate-200 hover:border-brand transition-all duration-200 p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-slate-600">
+              <p className="text-slate-700 font-semibold text-sm">
                 Eficiência de Conversão (Faturamento Período vs Estoque Atual)
               </p>
-              <p className="text-[11px] text-slate-400 tabular-nums">
+              <p className="text-slate-400 text-xs tabular-nums">
                 {brlK(filteredMetrics.totalRevenue)} faturado
               </p>
             </div>
             <div className="flex h-6 rounded-xl overflow-hidden gap-px mb-3 bg-slate-200">
               <div
-                className="bg-blue-400 flex items-center justify-center transition-all duration-700"
+                className="bg-blue-500 rounded-l-full flex items-center justify-center transition-all duration-700"
                 style={{
                   width: `${(metrics.stockCost / (metrics.stockCost + filteredMetrics.totalRevenue)) * 100}%`,
                 }}
@@ -672,7 +625,7 @@ export default function Relatorios() {
                   Estoque
                 </span>
               </div>
-              <div className="bg-emerald-400 flex-1 flex items-center justify-center transition-all duration-700">
+              <div className="bg-brand rounded-r-full flex-1 flex items-center justify-center transition-all duration-700">
                 <span className="text-[9px] font-bold text-white px-1 truncate hidden sm:block">
                   Vendas no Período
                 </span>
@@ -680,16 +633,16 @@ export default function Relatorios() {
             </div>
             <div className="flex items-center gap-6 text-xs text-slate-500">
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-blue-400" /> Capital
+                <span className="w-2.5 h-2.5 rounded-sm bg-blue-500" /> Capital
                 Parado —{" "}
                 <strong className="text-blue-600">
                   {brlK(metrics.stockCost)}
                 </strong>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400" />{" "}
+                <span className="w-2.5 h-2.5 rounded-sm bg-brand" />{" "}
                 Convertido em Venda —{" "}
-                <strong className="text-emerald-600">
+                <strong className="text-brand">
                   {brlK(filteredMetrics.totalRevenue)}
                 </strong>
               </span>
@@ -701,24 +654,19 @@ export default function Relatorios() {
       {/* Modal de exportação PDF de entradas de mercadorias */}
       {pdfModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => !pdfLoading && setPdfModal(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm border border-slate-200"
+            className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-sm p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2.5 mb-1">
-              <div className="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center">
-                <FileDown size={16} className="text-white" />
-              </div>
-              <h3 className="text-base font-bold text-slate-800">
-                {pdfTipo === "IN"
-                  ? "Exportar Entradas de Mercadorias"
-                  : "Exportar Saídas de Mercadorias"}
-              </h3>
-            </div>
-            <p className="text-xs text-slate-500 mb-5">
+            <h3 className="text-slate-900 font-black text-lg mb-1">
+              {pdfTipo === "IN"
+                ? "Exportar Entradas de Mercadorias"
+                : "Exportar Saídas de Mercadorias"}
+            </h3>
+            <p className="text-slate-400 text-sm mb-5">
               Selecione o tipo e o período a incluir no PDF.
             </p>
 
@@ -736,10 +684,10 @@ export default function Relatorios() {
                     setPdfError("");
                   }}
                   disabled={pdfLoading}
-                  className={`px-3 py-2 text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 ${
+                  className={`px-3 py-2 text-sm font-semibold rounded-xl transition-all duration-150 disabled:opacity-60 ${
                     pdfTipo === opt.value
-                      ? "bg-teal-500 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? "bg-brand text-white"
+                      : "bg-white border border-slate-200 text-slate-600 hover:border-brand hover:text-slate-900"
                   }`}
                 >
                   {opt.label}
@@ -747,11 +695,11 @@ export default function Relatorios() {
               ))}
             </div>
 
-            <div className="space-y-3">
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-slate-500">
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="text-slate-700 text-xs font-semibold mb-1.5 block">
                   Data início
-                </span>
+                </label>
                 <input
                   type="date"
                   value={pdfDates.start}
@@ -759,13 +707,13 @@ export default function Relatorios() {
                     setPdfDates((d) => ({ ...d, start: e.target.value }));
                     setPdfError("");
                   }}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-100 focus:border-teal-400 transition-all"
+                  className={INPUT_CLASS}
                 />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-slate-500">
+              </div>
+              <div>
+                <label className="text-slate-700 text-xs font-semibold mb-1.5 block">
                   Data fim
-                </span>
+                </label>
                 <input
                   type="date"
                   value={pdfDates.end}
@@ -773,21 +721,24 @@ export default function Relatorios() {
                     setPdfDates((d) => ({ ...d, end: e.target.value }));
                     setPdfError("");
                   }}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-100 focus:border-teal-400 transition-all"
+                  className={INPUT_CLASS}
                 />
-              </label>
+              </div>
             </div>
 
             {pdfError && (
-              <p className="mt-3 text-xs text-red-600">{pdfError}</p>
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-3 py-2.5 mt-4">
+                <AlertCircle size={16} className="flex-shrink-0" />
+                <span>{pdfError}</span>
+              </div>
             )}
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setPdfModal(false)}
                 disabled={pdfLoading}
-                className="flex-1 px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-60"
+                className="bg-white border border-slate-200 text-slate-600 font-medium rounded-xl px-4 py-2 hover:border-brand hover:text-slate-900 transition-all duration-150 disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -795,7 +746,7 @@ export default function Relatorios() {
                 type="button"
                 onClick={handleExportPDF}
                 disabled={pdfLoading}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm transition-colors disabled:bg-teal-300 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 bg-brand text-white font-bold rounded-xl px-4 py-2 hover:bg-brand-hover transition-colors duration-150 disabled:bg-slate-300 disabled:cursor-not-allowed"
               >
                 {pdfLoading ? (
                   <>

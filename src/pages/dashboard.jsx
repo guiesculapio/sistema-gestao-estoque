@@ -8,17 +8,12 @@ import {
   Bar,
   XAxis,
   YAxis,
+  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import {
-  TrendingUp,
-  DollarSign,
-  ShoppingCart,
   AlertTriangle,
-  ArrowUpRight,
-  ArrowDownRight,
   Package,
   AlertCircle,
   CheckCircle,
@@ -40,114 +35,47 @@ const brlK = (v) =>
 // 2. SUB-COMPONENTES
 // ─────────────────────────────────────────────────────────────
 
-const CARD_VARIANTS = {
-  emerald: {
-    iconBg: "bg-emerald-500",
-    iconRing: "ring-emerald-400/30",
-    glow: "before:bg-emerald-400/10",
-    delta: "text-emerald-600 bg-emerald-50",
-  },
-  blue: {
-    iconBg: "bg-blue-500",
-    iconRing: "ring-blue-400/30",
-    glow: "before:bg-blue-400/10",
-    delta: "text-blue-600 bg-blue-50",
-  },
-  violet: {
-    iconBg: "bg-violet-500",
-    iconRing: "ring-violet-400/30",
-    glow: "before:bg-violet-400/10",
-    delta: "text-violet-600 bg-violet-50",
-  },
-  amber: {
-    iconBg: "bg-amber-500",
-    iconRing: "ring-amber-400/30",
-    glow: "before:bg-amber-400/10",
-    delta: "text-amber-700 bg-amber-50",
-  },
-};
-
-function SummaryCard({
-  label,
-  value,
-  delta,
-  deltaPositive,
-  icon: Icon,
-  variant = "emerald",
-  subtitle,
-}) {
-  const v = CARD_VARIANTS[variant];
+function SummaryCard({ label, value, subtitle, valueClassName }) {
   return (
-    <div className="relative bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm overflow-hidden group hover:shadow-md transition-shadow duration-200">
-      <div
-        className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${v.glow} before:absolute before:inset-0`}
-      />
-      <div className="relative flex items-start justify-between mb-4">
-        <div
-          className={`w-10 h-10 rounded-xl ${v.iconBg} ring-4 ${v.iconRing} flex items-center justify-center shadow-sm`}
-        >
-          <Icon size={18} className="text-white" strokeWidth={2} />
-        </div>
-        <span
-          className={`flex items-center gap-0.5 text-xs font-semibold px-2 py-1 rounded-full ${v.delta}`}
-        >
-          {deltaPositive ? (
-            <ArrowUpRight size={11} strokeWidth={2.5} />
-          ) : (
-            <ArrowDownRight size={11} strokeWidth={2.5} />
-          )}
-          {delta}
-        </span>
-      </div>
-      <p className="text-2xl font-bold text-slate-800 tracking-tight tabular-nums leading-none mb-1">
+    <div className="bg-white rounded-xl border border-slate-200 p-5 cursor-default transition-all duration-200 hover:border-brand hover:scale-[1.02]">
+      <p className="text-slate-500 text-[10px] uppercase tracking-widest font-semibold mb-3">
+        {label}
+      </p>
+      <p
+        className={`font-black text-2xl tracking-tight leading-none tabular-nums mb-1.5 ${
+          valueClassName || "text-slate-900"
+        }`}
+      >
         {value}
       </p>
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      {subtitle && (
-        <p className="text-xs text-slate-400 mt-1.5 border-t border-slate-100 pt-1.5">
-          {subtitle}
-        </p>
-      )}
+      {subtitle && <p className="text-slate-400 text-xs">{subtitle}</p>}
     </div>
   );
 }
 
 function ProdutoCritico({ produto, rank }) {
   const esgotado = produto.current_stock === 0;
-  const cfg = esgotado
-    ? {
-        dot: "bg-red-500",
-        badge: "bg-red-50 text-red-600 ring-red-200",
-        label: "Esgotado",
-      }
-    : {
-        dot: "bg-amber-500",
-        badge: "bg-amber-50 text-amber-700 ring-amber-200",
-        label: "Baixo",
-      };
+  const badgeClass = esgotado
+    ? "bg-red-50 text-red-500 border border-red-200"
+    : "bg-amber-50 text-amber-600 border border-amber-200";
 
   return (
-    <div className="flex items-center gap-3 py-2.5 group">
-      <span className="text-[11px] font-bold text-slate-300 w-4 text-center">
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors duration-150">
+      <span className="text-slate-400 text-xs font-bold w-4 text-center">
         {rank}
       </span>
-      <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
-        <Package size={13} className="text-slate-400" />
-      </div>
+      <Package size={14} className="text-slate-400 flex-shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-slate-700 truncate">
+        <p className="text-slate-700 font-semibold text-sm truncate">
           {produto.name}
         </p>
-        <p className="text-[11px] text-slate-400 truncate">
+        <p className="text-slate-400 text-xs truncate">
           {produto.category}
         </p>
       </div>
       <span
-        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${cfg.badge}`}
+        className={`inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full ${badgeClass}`}
       >
-        <span
-          className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${esgotado ? "animate-pulse" : ""}`}
-        />
         {produto.current_stock} un.
       </span>
     </div>
@@ -287,23 +215,14 @@ export default function Dashboard() {
     }
   };
 
-  const barColors = [
-    "#0d9488",
-    "#14b8a6",
-    "#2dd4bf",
-    "#5eead4",
-    "#99f6e4",
-    "#ccfbf1",
-  ];
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex items-center justify-center h-96 bg-surface-page">
         <div className="text-center">
           <div className="inline-block animate-spin">
-            <Zap size={32} className="text-teal-500" />
+            <Zap size={32} className="text-brand" />
           </div>
-          <p className="mt-4 text-slate-600">
+          <p className="mt-4 text-ink-secondary">
             Carregando dados do banco de dados...
           </p>
         </div>
@@ -312,7 +231,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-full bg-surface-page space-y-6">
       {/* Alert de Erro/Sucesso */}
       {alertMessage && (
         <AlertMessage
@@ -325,15 +244,15 @@ export default function Dashboard() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+          <h2 className="text-xl font-extrabold text-ink-primary tracking-tight">
             Dashboard
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Gestão de Estoque · Sincronizado com Supabase
+          <p className="text-sm text-ink-secondary mt-0.5">
+            Estoklab · Sincronizado com Supabase
           </p>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 rounded-lg text-white">
-          <Zap size={12} className="text-teal-400" />
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border-2 border-stroke-subtle rounded-md text-ink-primary">
+          <Zap size={12} className="text-brand" />
           <span className="text-xs font-medium">
             {products.length} produtos
           </span>
@@ -345,38 +264,25 @@ export default function Dashboard() {
         <SummaryCard
           label="Faturamento Potencial"
           value={brl(dashboardStats.faturamentoPotencial)}
-          delta="Real"
-          deltaPositive={true}
-          icon={DollarSign}
-          variant="emerald"
           subtitle="Total de venda em estoque"
         />
         <SummaryCard
           label="Lucro Previsto"
           value={brl(dashboardStats.lucroEstimado)}
-          delta="Bruto"
-          deltaPositive={true}
-          icon={TrendingUp}
-          variant="blue"
           subtitle={`Margem: ${dashboardStats.faturamentoPotencial > 0 ? ((dashboardStats.lucroEstimado / dashboardStats.faturamentoPotencial) * 100).toFixed(1) : 0}%`}
         />
         <SummaryCard
           label="Custo em Estoque"
           value={brl(dashboardStats.investimentoEstoque)}
-          delta="Fixo"
-          deltaPositive={false}
-          icon={ShoppingCart}
-          variant="violet"
           subtitle="Dinheiro imobilizado"
         />
         <SummaryCard
           label="Alertas Críticos"
           value={`${dashboardStats.alertasCount} itens`}
-          delta={dashboardStats.alertasCount > 0 ? "Crítico" : "OK"}
-          deltaPositive={dashboardStats.alertasCount === 0}
-          icon={AlertTriangle}
-          variant={dashboardStats.alertasCount > 0 ? "amber" : "emerald"}
           subtitle={`${stats.lowStockCount} baixo, ${stats.outOfStockCount} esgotado`}
+          valueClassName={
+            dashboardStats.alertasCount > 0 ? "text-amber-500" : "text-brand"
+          }
         />
       </div>
 
@@ -385,34 +291,77 @@ export default function Dashboard() {
 
       {/* Gráfico de Categorias Real */}
       {dashboardStats.dadosCategoria.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h3 className="text-sm font-bold text-slate-700 mb-4">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 hover:border-brand transition-all duration-200">
+          <h3 className="text-slate-900 font-bold text-base mb-4">
             Volume por Categoria
           </h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={dashboardStats.dadosCategoria}>
-              <XAxis dataKey="categoria" axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={brlK} axisLine={false} tickLine={false} />
-              <Tooltip />
-              <Bar dataKey="vendas" radius={[4, 4, 0, 0]}>
-                {dashboardStats.dadosCategoria.map((_, i) => (
-                  <Cell key={i} fill={barColors[i % barColors.length]} />
-                ))}
-              </Bar>
+          <ResponsiveContainer
+            width="100%"
+            height={Math.max(200, dashboardStats.dadosCategoria.length * 45)}
+          >
+            <BarChart
+              data={dashboardStats.dadosCategoria}
+              layout="vertical"
+              margin={{ top: 4, right: 20, left: 0, bottom: 4 }}
+            >
+              <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                type="number"
+                tickFormatter={brlK}
+                tick={{ fontSize: 11, fill: "#94a3b8" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                type="category"
+                dataKey="categoria"
+                tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
+                axisLine={false}
+                tickLine={false}
+                width={90}
+              />
+              <Tooltip
+                cursor={{ fill: "transparent" }}
+                contentStyle={{
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                  color: "#0f172a",
+                  fontSize: "12px",
+                }}
+                labelStyle={{ color: "#0f172a" }}
+                itemStyle={{ color: "#0f172a" }}
+              />
+              <Bar
+                dataKey="vendas"
+                fill="#22c55e"
+                barSize={20}
+                radius={[0, 4, 4, 0]}
+                cursor="pointer"
+                isAnimationActive={true}
+                animationDuration={800}
+                animationEasing="ease-out"
+                activeBar={{
+                  fill: "#16a34a",
+                  radius: [0, 4, 4, 0],
+                  filter: "drop-shadow(0 0 6px rgba(34,197,94,0.5))",
+                }}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
       )}
 
       {/* Lista Real de Críticos */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
-        <div className="px-4 py-4 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="text-sm font-bold text-slate-700">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-brand transition-all duration-200 flex flex-col">
+        <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="text-slate-900 font-bold text-sm">
             Reposição Urgente
           </h3>
           <AlertTriangle size={14} className="text-amber-500" />
         </div>
-        <div className="flex-1 px-4 divide-y divide-slate-100">
+        <div className="flex-1">
           {dashboardStats.criticos.length > 0 ? (
             dashboardStats.criticos.map((p, i) => (
               <ProdutoCritico key={p.id} produto={p} rank={i + 1} />
