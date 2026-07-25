@@ -271,12 +271,15 @@ export default function Inventario() {
     setHistoryProduct(null);
   };
 
-  const handleDelete = (id, nome) => {
+  const handleDelete = async (id, nome) => {
     const confirmou = window.confirm(
       `Deseja realmente excluir o produto "${nome}"?`
     );
-    if (confirmou) {
-      deleteProduct(id);
+    if (!confirmou) return;
+
+    const result = await deleteProduct(id);
+    if (result?.error) {
+      alert(`Erro ao excluir "${nome}": ${result.error}`);
     }
   };
 
