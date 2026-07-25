@@ -28,18 +28,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
  * @returns {Promise<Array>} Lista de produtos ou array vazio em caso de erro
  */
 export async function fetchProducts() {
-  try {
-    const { data, error } = await supabase
-      .from("products")
-      .select("*, categories(id, name)")
-      .order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("products")
+    .select("*, categories(id, name)")
+    .order("created_at", { ascending: false });
 
-    if (error) throw error;
-    return data || [];
-  } catch (err) {
-    console.error("❌ Erro ao buscar produtos:", err.message);
-    return [];
+  if (error) {
+    console.error("❌ Erro ao buscar produtos:", error.message);
+    throw error;
   }
+  return data || [];
 }
 
 /**
@@ -651,16 +649,14 @@ export async function createSale(items) {
  * @returns {Promise<Array>} Linhas de public.sales ou [] em caso de erro
  */
 export async function fetchSales() {
-  try {
-    const { data, error } = await supabase
-      .from("sales")
-      .select("*")
-      .order("sold_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("sales")
+    .select("*")
+    .order("sold_at", { ascending: false });
 
-    if (error) throw error;
-    return data || [];
-  } catch (err) {
-    console.error("❌ Erro ao buscar vendas:", err.message);
-    return [];
+  if (error) {
+    console.error("❌ Erro ao buscar vendas:", error.message);
+    throw error;
   }
+  return data || [];
 }

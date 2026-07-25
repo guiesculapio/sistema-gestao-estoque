@@ -105,7 +105,7 @@ function AlertMessage({ type, message, onClose }) {
 // ─────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const { products, metrics, userPreferences } = useInventory();
+  const { products, metrics, userPreferences, loadError } = useInventory();
 
   const [alertMessage, setAlertMessage] = useState(null);
 
@@ -186,6 +186,13 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full bg-surface-page space-y-6">
+      {loadError && (
+        <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 flex items-center gap-2 mb-4">
+          <AlertCircle size={16} className="flex-shrink-0" />
+          {loadError}
+        </div>
+      )}
+
       {/* Alert de Erro/Sucesso */}
       {alertMessage && (
         <AlertMessage

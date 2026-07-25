@@ -112,15 +112,23 @@ function toSupabaseUpdates(updates) {
 export function InventoryProvider({ children }) {
   const [products, setProducts] = useState([]);
   const [sales, setSales] = useState([]);
+  const [loadError, setLoadError] = useState(null);
   const { preferences: userPreferences } = useUserPreferences();
 
   // Carregar produtos do Supabase na montagem
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const rows = await fetchProducts();
-      if (cancelled) return;
-      setProducts(rows.map(fromSupabaseProduct));
+      try {
+        const rows = await fetchProducts();
+        if (cancelled) return;
+        setProducts(rows.map(fromSupabaseProduct));
+        setLoadError(null);
+      } catch (err) {
+        if (cancelled) return;
+        console.error("[InventoryContext] Erro ao carregar produtos:", err);
+        setLoadError("Falha ao carregar produtos. Verifique sua conexão.");
+      }
     })();
     return () => {
       cancelled = true;
@@ -132,9 +140,15 @@ export function InventoryProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const rows = await fetchSales();
-      if (cancelled) return;
-      setSales(rows.map(fromSupabaseSale));
+      try {
+        const rows = await fetchSales();
+        if (cancelled) return;
+        setSales(rows.map(fromSupabaseSale));
+      } catch (err) {
+        if (cancelled) return;
+        console.error("[InventoryContext] Erro ao carregar vendas:", err);
+        setLoadError("Falha ao carregar vendas. Verifique sua conexão.");
+      }
     })();
     return () => {
       cancelled = true;
@@ -348,6 +362,7 @@ export function InventoryProvider({ children }) {
         metrics,
         fetchProductHistory,
         userPreferences,
+        loadError,
       }}
     >
       {children}
