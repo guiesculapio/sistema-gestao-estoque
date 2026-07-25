@@ -24,9 +24,26 @@ export function AuthProvider({ children }) {
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
+      (event, newSession) => {
         if (cancelled) return;
+
+        // Sessão expirada ou logout — limpa estado e Supabase
+        // cuida do redirect via AppGate (session null → <Login />)
+        if (event === "SIGNED_OUT" || event === "TOKEN_EXPIRED") {
+          setSession(null);
+          setLoading(false);
+          return;
+        }
+
+        // Token renovado silenciosamente — atualiza sessão sem
+        // flash de loading
+        if (event === "TOKEN_REFRESHED") {
+          setSession(newSession);
+          return;
+        }
+
         setSession(newSession ?? null);
+        setLoading(false);
       }
     );
 
@@ -54,6 +71,7 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) return { success: false, error: error.message };
+    setSession(null); // força limpeza imediata sem esperar evento
     return { success: true };
   }, []);
 
