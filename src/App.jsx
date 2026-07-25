@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Loader } from "lucide-react";
-import MainLayout from "./components/layout/mainlayout";
-import Dashboard from "./pages/dashboard";
-import Inventario from "./pages/inventario";
-import Relatorios from "./pages/relatorios";
-import Vendas from "./pages/vendas";
-import Configuracoes from "./pages/configuracoes";
+import MainLayout from "./components/layout/MainLayout";
+import Dashboard from "./pages/Dashboard";
+import Inventario from "./pages/Inventario";
+import Relatorios from "./pages/Relatorios";
+import Vendas from "./pages/Vendas";
+import Configuracoes from "./pages/Configuracoes";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { InventoryProvider } from "./context/InventoryContext";

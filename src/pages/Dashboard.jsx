@@ -128,8 +128,6 @@ export default function Dashboard() {
 
   const { preferences } = useUserPreferences();
 
-  console.log({ products, stats, loading });
-
   const [alertMessage, setAlertMessage] = useState(null);
 
   // Mostrar erro por 5 segundos

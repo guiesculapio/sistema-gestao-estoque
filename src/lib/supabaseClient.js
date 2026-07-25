@@ -645,21 +645,6 @@ export async function fetchProductHistory(productId) {
  */
 export async function fetchOutboundHistory() {
   try {
-    // 🔍 DIAGNÓSTICO: amostra sem filtro, para inspecionar quais 'type'
-    // realmente existem na tabela e detectar divergência de casing/valor.
-    const { data: diag } = await supabase
-      .from("inventory_movements")
-      .select("id, type, quantity, product_id, created_at")
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    const distinctTypes = [...new Set((diag || []).map((m) => m.type))];
-    console.log("🔍 [DIAG] inventory_movements (sem filtro):", {
-      totalAmostra: diag?.length ?? 0,
-      tiposEncontrados: distinctTypes,
-      primeirasLinhas: diag?.slice(0, 5),
-    });
-
     const { data, error } = await supabase
       .from("inventory_movements")
       .select("id, created_at, quantity, product_id")
