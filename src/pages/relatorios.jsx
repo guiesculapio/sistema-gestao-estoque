@@ -251,10 +251,10 @@ export default function Relatorios() {
 
   const topParado = useMemo(() => {
     return products
-      .filter((p) => p.qtd > 0 && !sales.some((s) => s.productId === p.id))
+      .filter((p) => p.qtd > 0 && !salesFiltradas.some((s) => s.productId === p.id))
       .sort((a, b) => b.precoCusto * b.qtd - a.precoCusto * a.qtd)
       .slice(0, 6);
-  }, [products, sales]);
+  }, [products, salesFiltradas]);
 
   const maxMargemReal = useMemo(
     () =>
