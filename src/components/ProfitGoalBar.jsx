@@ -1,15 +1,11 @@
 import { useState } from "react";
 import { Target, Pencil, Check, X } from "lucide-react";
 import { useProfitGoal } from "../hooks/useProfitGoal";
+import { brl } from "../utils/format";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────
-const brl = (v) =>
-  Number(v || 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
 
 // Formata "YYYY-MM-DD" (date puro do banco) como DD/MM/YYYY sem cair em
 // deslocamento de timezone (não usa new Date()).

@@ -19,15 +19,11 @@ import { isLowStock } from "../lib/stock";
 // Componentes de Modal
 import ModalAddProduto from "../components/layout/ModalAddProduto";
 import ModalHistorico from "../components/layout/ModalHistorico";
+import { brl } from "../utils/format";
 
 // ─────────────────────────────────────────────
 // 1. HELPERS
 // ─────────────────────────────────────────────
-
-const brl = (valor) => {
-  if (valor === undefined || valor === null) return "R$ 0,00";
-  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-};
 
 const calcMargem = (custo, venda) =>
   venda > 0 ? ((venda - custo) / venda) * 100 : 0;

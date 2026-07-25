@@ -26,6 +26,7 @@ import {
   fetchOutboundMovements,
 } from "../lib/supabaseClient";
 import { generateInboundPDF, generateOutboundPDF } from "../lib/generatePDF";
+import { brl, brlK } from "../utils/format";
 
 // ─────────────────────────────────────────────────────────────
 // 1. CONFIGURAÇÕES E HELPERS
@@ -41,12 +42,6 @@ const PERIODOS = [
 const INPUT_CLASS =
   "w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-sm placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 transition-all";
 
-const brl = (v) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const brlK = (v) =>
-  v >= 1000
-    ? `R$ ${(v / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`
-    : brl(v);
 const pct = (v) =>
   v.toLocaleString("pt-BR", {
     minimumFractionDigits: 1,

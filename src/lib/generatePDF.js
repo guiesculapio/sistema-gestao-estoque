@@ -1,16 +1,10 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { brl } from "../utils/format";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers compartilhados
 // ─────────────────────────────────────────────────────────────
-function formatBRL(value) {
-  return Number(value).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
 function formatDate(dateStr) {
   if (!dateStr) return "—";
   return new Date(dateStr).toLocaleDateString("pt-BR");

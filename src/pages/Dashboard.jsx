@@ -19,17 +19,7 @@ import {
   CheckCircle,
   Zap,
 } from "lucide-react";
-
-// ─────────────────────────────────────────────────────────────
-// 1. HELPERS DE FORMATAÇÃO
-// ─────────────────────────────────────────────────────────────
-const brl = (v) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-const brlK = (v) =>
-  v >= 1000
-    ? `R$ ${(v / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`
-    : brl(v);
+import { brl, brlK } from "../utils/format";
 
 // ─────────────────────────────────────────────────────────────
 // 2. SUB-COMPONENTES
