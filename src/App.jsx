@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Loader } from "lucide-react";
+import { InventoryProvider } from "./context/InventoryContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import MainLayout from "./components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Inventario from "./pages/Inventario";
@@ -8,58 +9,83 @@ import Vendas from "./pages/Vendas";
 import Configuracoes from "./pages/Configuracoes";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import { InventoryProvider } from "./context/InventoryContext";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { Loader } from "lucide-react";
 
-function AuthenticatedApp() {
-  return (
-    <InventoryProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="inventario" element={<Inventario />} />
-            <Route path="vendas" element={<Vendas />} />
-            <Route path="relatorios" element={<Relatorios />} />
-            <Route path="configuracoes" element={<Configuracoes />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </InventoryProvider>
-  );
-}
-
-function AppGate() {
+/**
+ * Rota protegida — redireciona para /login se não autenticado.
+ */
+function PrivateRoute({ children }) {
   const { session, loading } = useAuth();
-
-  if (loading) {
+  if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader size={28} className="animate-spin text-slate-400" />
       </div>
     );
-  }
+  return session ? children : <Navigate to="/login" replace />;
+}
 
-  // Rotas públicas — acessíveis sem sessão
-  if (window.location.pathname === "/register") {
+/**
+ * Rota pública — redireciona para /dashboard se já autenticado.
+ * Evita que usuário logado acesse /login ou /register.
+ */
+function PublicRoute({ children }) {
+  const { session, loading } = useAuth();
+  if (loading)
     return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/register" element={<Register />} />
-        </Routes>
-      </BrowserRouter>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader size={28} className="animate-spin text-slate-400" />
+      </div>
     );
-  }
-
-  return session ? <AuthenticatedApp /> : <Login />;
+  return session ? <Navigate to="/dashboard" replace /> : children;
 }
 
 function App() {
   return (
     <AuthProvider>
-      <AppGate />
+      <BrowserRouter>
+        <Routes>
+          {/* Rotas públicas */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
+          />
+
+          {/* Rotas protegidas */}
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <InventoryProvider>
+                  <MainLayout />
+                </InventoryProvider>
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="inventario" element={<Inventario />} />
+            <Route path="vendas" element={<Vendas />} />
+            <Route path="relatorios" element={<Relatorios />} />
+            <Route path="configuracoes" element={<Configuracoes />} />
+          </Route>
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }
