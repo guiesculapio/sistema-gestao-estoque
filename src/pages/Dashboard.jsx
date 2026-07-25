@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { useInventory } from "../hooks/useInventory"; // ✅ NOVO HOOK COM SUPABASE
-import { useUserPreferences } from "../hooks/useUserPreferences";
+import { useInventory } from "../context/InventoryContext";
 import ProfitGoalBar from "../components/ProfitGoalBar";
 import { isLowStock } from "../lib/stock";
 import {
@@ -44,7 +43,7 @@ function SummaryCard({ label, value, subtitle, valueClassName }) {
 }
 
 function ProdutoCritico({ produto, rank }) {
-  const esgotado = produto.current_stock === 0;
+  const esgotado = produto.qtd === 0;
   const badgeClass = esgotado
     ? "bg-red-50 text-red-500 border border-red-200"
     : "bg-amber-50 text-amber-600 border border-amber-200";
@@ -57,16 +56,16 @@ function ProdutoCritico({ produto, rank }) {
       <Package size={14} className="text-slate-400 flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-slate-700 font-semibold text-sm truncate">
-          {produto.name}
+          {produto.nome}
         </p>
         <p className="text-slate-400 text-xs truncate">
-          {produto.category}
+          {produto.categoria}
         </p>
       </div>
       <span
         className={`inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full ${badgeClass}`}
       >
-        {produto.current_stock} un.
+        {produto.qtd} un.
       </span>
     </div>
   );
@@ -106,17 +105,7 @@ function AlertMessage({ type, message, onClose }) {
 // ─────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  // ✅ USAR O NOVO HOOK COM SUPABASE
-  const {
-    products,
-    loading,
-    error,
-    stats,
-    recordOutbound,
-    clearError,
-  } = useInventory();
-
-  const { preferences } = useUserPreferences();
+  const { products, metrics, userPreferences } = useInventory();
 
   const [alertMessage, setAlertMessage] = useState(null);
 
@@ -130,11 +119,11 @@ export default function Dashboard() {
   const dashboardStats = useMemo(() => {
     // Soma exata de (estoque atual × preço) de todos os produtos
     const faturamentoPotencial = products.reduce(
-      (acc, p) => acc + Number(p.current_stock) * Number(p.price),
+      (acc, p) => acc + Number(p.qtd) * Number(p.precoVenda),
       0
     );
     const investimentoEstoque = products.reduce(
-      (acc, p) => acc + Number(p.current_stock) * Number(p.cost_price || 0),
+      (acc, p) => acc + Number(p.qtd) * Number(p.precoCusto || 0),
       0
     );
     const lucroEstimado = faturamentoPotencial - investimentoEstoque;
@@ -143,12 +132,12 @@ export default function Dashboard() {
     // do usuário — fonte única da verdade em src/lib/stock.js).
     const criticos = [...products]
       .filter((p) => {
-        const qty = Number(p.current_stock) || 0;
-        return qty <= 0 || isLowStock(p, preferences);
+        const qty = Number(p.qtd) || 0;
+        return qty <= 0 || isLowStock(p, userPreferences);
       })
       .sort((a, b) => {
-        const qa = Number(a.current_stock) || 0;
-        const qb = Number(b.current_stock) || 0;
+        const qa = Number(a.qtd) || 0;
+        const qb = Number(b.qtd) || 0;
         // Esgotados (qtd <= 0) primeiro, depois por qtd crescente.
         const ea = qa <= 0 ? 0 : 1;
         const eb = qb <= 0 ? 0 : 1;
@@ -159,10 +148,10 @@ export default function Dashboard() {
 
     // Agrupamento para o Gráfico de Barras
     const categoriasMap = products.reduce((acc, p) => {
-      const cat = p.categories?.name || "Sem categoria";
+      const cat = p.categoria || "Sem categoria";
       if (!acc[cat]) acc[cat] = { categoria: cat, vendas: 0, custo: 0 };
-      acc[cat].vendas += Number(p.current_stock) * Number(p.price);
-      acc[cat].custo += Number(p.current_stock) * Number(p.cost_price || 0);
+      acc[cat].vendas += Number(p.qtd) * Number(p.precoVenda);
+      acc[cat].custo += Number(p.qtd) * Number(p.precoCusto || 0);
       return acc;
     }, {});
 
@@ -176,47 +165,24 @@ export default function Dashboard() {
       }))
       .sort((a, b) => b.vendas - a.vendas);
 
+    // metrics.lowStockCount (isLowStock) exclui esgotados por definição —
+    // soma-se a contagem de esgotados à parte para não subestimar o total.
+    const baixoCount = metrics.lowStockCount;
+    const esgotadoCount = products.filter(
+      (p) => (Number(p.qtd) || 0) <= 0
+    ).length;
+
     return {
       faturamentoPotencial,
       investimentoEstoque,
       lucroEstimado,
       criticos,
-      alertasCount: stats.lowStockCount + stats.outOfStockCount,
+      alertasCount: baixoCount + esgotadoCount,
+      baixoCount,
+      esgotadoCount,
       dadosCategoria,
     };
-  }, [products, stats, preferences]);
-
-  // Exemplo de como registrar uma venda
-  const handleSaleExample = async () => {
-    if (products.length === 0) {
-      showAlert("Nenhum produto disponível para venda", "error");
-      return;
-    }
-
-    const productId = products[0].id;
-    const result = await recordOutbound(productId, 1, "venda");
-
-    if (result.success) {
-      showAlert(`Venda registrada: 1x ${products[0].name}`, "success");
-    } else {
-      showAlert(result.error, "error");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96 bg-surface-page">
-        <div className="text-center">
-          <div className="inline-block animate-spin">
-            <Zap size={32} className="text-brand" />
-          </div>
-          <p className="mt-4 text-ink-secondary">
-            Carregando dados do banco de dados...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  }, [products, metrics, userPreferences]);
 
   return (
     <div className="min-h-full bg-surface-page space-y-6">
@@ -267,7 +233,7 @@ export default function Dashboard() {
         <SummaryCard
           label="Alertas Críticos"
           value={`${dashboardStats.alertasCount} itens`}
-          subtitle={`${stats.lowStockCount} baixo, ${stats.outOfStockCount} esgotado`}
+          subtitle={`${dashboardStats.baixoCount} baixo, ${dashboardStats.esgotadoCount} esgotado`}
           valueClassName={
             dashboardStats.alertasCount > 0 ? "text-amber-500" : "text-brand"
           }
