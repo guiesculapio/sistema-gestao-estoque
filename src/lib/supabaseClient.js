@@ -282,27 +282,6 @@ export async function updateUserPreferences(prefs) {
 }
 
 /**
- * Buscar um produto específico pelo ID
- * @param {number} id - ID do produto
- * @returns {Promise<Object|null>} Dados do produto ou null
- */
-export async function fetchProductById(id) {
-  try {
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (err) {
-    console.error(`❌ Erro ao buscar produto ${id}:`, err.message);
-    return null;
-  }
-}
-
-/**
  * Traduz um erro do Supabase em mensagem amigável para duplicatas (23505).
  * A tabela products tem UNIQUE em (barcode, user_id) e (name, user_id); o nome
  * do índice violado vem em error.message, então detectamos qual campo colidiu.
@@ -564,27 +543,6 @@ export async function fetchOutboundMovements({ startDate, endDate }) {
 }
 
 /**
- * Buscar movimentações de um produto
- * @param {number} productId - ID do produto
- * @returns {Promise<Array>} Lista de movimentações
- */
-export async function fetchProductMovements(productId) {
-  try {
-    const { data, error } = await supabase
-      .from("inventory_movements")
-      .select("*")
-      .eq("product_id", productId)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  } catch (err) {
-    console.error("❌ Erro ao buscar movimentações:", err.message);
-    return [];
-  }
-}
-
-/**
  * Registrar um evento de log de produto (ENTRADA / SAIDA / ALTERACAO)
  * @param {{product_id: number, type: 'ENTRADA'|'SAIDA'|'ALTERACAO', quantity?: number}} log
  * @returns {Promise<Object|null>}
@@ -632,35 +590,6 @@ export async function fetchProductHistory(productId) {
       `❌ Erro ao buscar histórico do produto ${productId}:`,
       err.message
     );
-    return [];
-  }
-}
-
-/**
- * Buscar todo o histórico de saídas (vendas)
- * Retorna product_id para que o consumidor cruze com a lista de produtos
- * em memória (evita depender do embed PostgREST, que pode falhar se a
- * relação FK não for inferida corretamente)
- * @returns {Promise<Array>} Lista de movimentações OUT
- */
-export async function fetchOutboundHistory() {
-  try {
-    const { data, error } = await supabase
-      .from("inventory_movements")
-      .select("id, created_at, quantity, product_id")
-      .eq("type", "OUT")
-      .order("created_at", { ascending: true });
-
-    if (error) throw error;
-
-    console.log("🔍 [DIAG] Filtro type='OUT' retornou:", {
-      total: data?.length ?? 0,
-      primeiras: data?.slice(0, 3),
-    });
-
-    return data || [];
-  } catch (err) {
-    console.error("❌ Erro ao buscar histórico de saídas:", err.message);
     return [];
   }
 }
