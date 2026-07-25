@@ -3,7 +3,6 @@ import { X, Save, Barcode, Plus, Check, AlertCircle } from "lucide-react";
 // Mantendo o seu caminho de importação original
 import { useInventory } from "../../context/InventoryContext";
 import { useCategories } from "../../hooks/useCategories";
-import { useUserPreferences } from "../../hooks/useUserPreferences";
 import { computeStockStatus } from "../../lib/stock";
 
 const INPUT_CLASS =
@@ -12,13 +11,12 @@ const INPUT_CLASS =
 const LABEL_CLASS = "text-slate-700 text-xs font-semibold mb-1.5 block";
 
 export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
-  const { addProduct, updateProduct } = useInventory();
+  const { addProduct, updateProduct, userPreferences } = useInventory();
   const {
     categories,
     loading: loadingCategories,
     createCategory,
   } = useCategories();
-  const { preferences: userPreferences } = useUserPreferences();
 
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");

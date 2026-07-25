@@ -347,6 +347,7 @@ export function InventoryProvider({ children }) {
         sellItems,
         metrics,
         fetchProductHistory,
+        userPreferences,
       }}
     >
       {children}

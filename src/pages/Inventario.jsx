@@ -14,7 +14,6 @@ import {
 
 // Hook do contexto
 import { useInventory } from "../context/InventoryContext";
-import { useUserPreferences } from "../hooks/useUserPreferences";
 import { isLowStock } from "../lib/stock";
 // Componentes de Modal
 import ModalAddProduto from "../components/layout/ModalAddProduto";
@@ -219,8 +218,7 @@ export default function Inventario() {
   const [historyProduct, setHistoryProduct] = useState(null); // Produto selecionado para histórico
 
   // Dados e funções do Contexto
-  const { products: produtos, deleteProduct } = useInventory();
-  const { preferences: userPreferences } = useUserPreferences();
+  const { products: produtos, deleteProduct, userPreferences } = useInventory();
 
   const produtosFiltrados = useMemo(() => {
     const termo = busca.toLowerCase().trim();
