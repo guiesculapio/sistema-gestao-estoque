@@ -1,7 +1,7 @@
 /**
- * Formata um número para moeda BRL.
+ * Formats a number as BRL currency.
  * @param {number} valor
- * @returns {string} ex: "R$ 1.234,56"
+ * @returns {string} e.g.: "R$ 1.234,56"
  */
 export function brl(valor) {
   if (valor === undefined || valor === null) return "R$ 0,00";
@@ -12,9 +12,9 @@ export function brl(valor) {
 }
 
 /**
- * Formata número para BRL abreviado (k para milhares).
+ * Formats a number as abbreviated BRL (k for thousands).
  * @param {number} valor
- * @returns {string} ex: "R$ 1,2k"
+ * @returns {string} e.g.: "R$ 1,2k"
  */
 export function brlK(valor) {
   if (valor === undefined || valor === null) return "R$ 0";

@@ -3,29 +3,29 @@ import { createClient } from "@supabase/supabase-js";
 // ═══════════════════════════════════════════════════════════════════════════════
 // SUPABASE CLIENT
 // ═══════════════════════════════════════════════════════════════════════════════
-// Este arquivo configura a conexão com o Supabase usando as variáveis de
-// ambiente do arquivo .env.local
+// This file configures the connection to Supabase using the environment
+// variables from the .env.local file
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Validações de segurança
+// Security validations
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
     "❌ Variáveis de ambiente não configuradas! Adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env.local"
   );
 }
 
-// Criar o cliente Supabase
+// Create the Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// FUNCTIONS AUXILIARES
+// HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Buscar todos os produtos do banco de dados
- * @returns {Promise<Array>} Lista de produtos ou array vazio em caso de erro
+ * Fetch all products from the database
+ * @returns {Promise<Array>} List of products, or an empty array on error
  */
 export async function fetchProducts() {
   const { data, error } = await supabase
@@ -34,16 +34,16 @@ export async function fetchProducts() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("❌ Erro ao buscar produtos:", error.message);
+    console.error("❌ Error fetching products:", error.message);
     throw error;
   }
   return data || [];
 }
 
 /**
- * Buscar todas as categorias do banco de dados
- * RLS filtra automaticamente pelas categorias do usuário logado.
- * @returns {Promise<Array<{id:number,name:string}>>} Lista de categorias ou [] em caso de erro
+ * Fetch all categories from the database
+ * RLS automatically filters by the logged-in user's categories.
+ * @returns {Promise<Array<{id:number,name:string}>>} List of categories, or [] on error
  */
 export async function fetchCategories() {
   try {
@@ -55,16 +55,16 @@ export async function fetchCategories() {
     if (error) throw error;
     return data || [];
   } catch (err) {
-    console.error("❌ Erro ao buscar categorias:", err.message);
+    console.error("❌ Error fetching categories:", err.message);
     return [];
   }
 }
 
 /**
- * Criar uma nova categoria.
- * Envia user_id explicitamente a partir da sessão ativa para garantir
- * que o INSERT satisfaça a policy RLS (auth.uid() = user_id) mesmo se
- * o DEFAULT auth.uid() não estiver expandindo no contexto da request.
+ * Create a new category.
+ * Explicitly sends user_id from the active session to ensure
+ * the INSERT satisfies the RLS policy (auth.uid() = user_id) even if
+ * the DEFAULT auth.uid() isn't expanding in the request context.
  * @param {string} name
  * @returns {Promise<{category:{id:number,name:string}|null, error:string|null}>}
  */
@@ -76,7 +76,7 @@ export async function createCategory(name) {
 
   if (sessionError || !session?.user) {
     console.error(
-      "❌ createCategory abortado: sem sessão ativa.",
+      "❌ createCategory aborted: no active session.",
       sessionError
     );
     return {
@@ -86,7 +86,7 @@ export async function createCategory(name) {
   }
 
   const userId = session.user.id;
-  console.log("🔍 createCategory: usando user_id =", userId);
+  console.log("🔍 createCategory: using user_id =", userId);
 
   const { data, error } = await supabase
     .from("categories")
@@ -94,7 +94,7 @@ export async function createCategory(name) {
     .select("id, name");
 
   if (error) {
-    console.error("❌ Erro ao criar categoria:", error.message, error);
+    console.error("❌ Error creating category:", error.message, error);
     return { category: null, error: error.message };
   }
 
@@ -110,9 +110,9 @@ export async function createCategory(name) {
 }
 
 /**
- * Atualizar o nome de uma categoria.
- * A RLS garante que só o dono pode atualizar; ainda assim retornamos
- * o registro para o consumidor detectar "nada foi atualizado".
+ * Update a category's name.
+ * RLS ensures only the owner can update; we still return
+ * the record so the consumer can detect "nothing was updated".
  * @param {number} id
  * @param {string} name
  * @returns {Promise<{category:{id:number,name:string}|null, error:string|null}>}
@@ -130,7 +130,7 @@ export async function updateCategory(id, name) {
     .select("id, name");
 
   if (error) {
-    console.error("❌ Erro ao atualizar categoria:", error.message, error);
+    console.error("❌ Error updating category:", error.message, error);
     return { category: null, error: error.message };
   }
 
@@ -146,10 +146,10 @@ export async function updateCategory(id, name) {
 }
 
 /**
- * Excluir uma categoria.
- * Antes de tentar apagar, verifica se existe algum produto vinculado —
- * se sim, aborta com erro descritivo para não deletar em cascata silenciosamente
- * nem quebrar produtos com FK órfã.
+ * Delete a category.
+ * Before attempting to delete, checks whether any product is linked to it —
+ * if so, aborts with a descriptive error to avoid silently cascading the delete
+ * or breaking products with an orphan FK.
  * @param {number} id
  * @returns {Promise<{success:boolean, error:string|null}>}
  */
@@ -161,7 +161,7 @@ export async function deleteCategory(id) {
 
   if (countError) {
     console.error(
-      "❌ Erro ao verificar produtos da categoria:",
+      "❌ Error checking category's products:",
       countError.message
     );
     return {
@@ -180,7 +180,7 @@ export async function deleteCategory(id) {
   const { error } = await supabase.from("categories").delete().eq("id", id);
 
   if (error) {
-    console.error("❌ Erro ao excluir categoria:", error.message);
+    console.error("❌ Error deleting category:", error.message);
     return { success: false, error: error.message };
   }
 
@@ -188,10 +188,10 @@ export async function deleteCategory(id) {
 }
 
 /**
- * Buscar as preferências do usuário logado.
- * Retorna null se o usuário ainda não tem linha em user_preferences.
- * Inclui as colunas de meta de lucro (profit_goal, profit_goal_start,
- * profit_goal_end) para alimentar a barra de meta do Dashboard.
+ * Fetch the logged-in user's preferences.
+ * Returns null if the user doesn't have a row in user_preferences yet.
+ * Includes the profit goal columns (profit_goal, profit_goal_start,
+ * profit_goal_end) to feed the Dashboard's goal bar.
  * @returns {Promise<{low_stock_threshold:number, profit_goal:number|null, profit_goal_start:string|null, profit_goal_end:string|null}|null>}
  */
 export async function getUserPreferences() {
@@ -206,18 +206,18 @@ export async function getUserPreferences() {
     if (error) throw error;
     return data || null;
   } catch (err) {
-    console.error("❌ Erro ao buscar preferências:", err.message);
+    console.error("❌ Error fetching preferences:", err.message);
     return null;
   }
 }
 
 /**
- * Atualizar as preferências do usuário logado.
- * Aceita um objeto com qualquer subconjunto dos campos de preferências;
- * apenas os campos presentes no objeto são enviados (spread), preservando
- * os demais valores já gravados. Usa upsert por user_id para cobrir tanto
- * o caso de já existir seed quanto o de linha ausente (novo usuário).
- * Usa getUser() — nunca getSession().
+ * Update the logged-in user's preferences.
+ * Accepts an object with any subset of the preference fields;
+ * only the fields present in the object are sent (spread), preserving
+ * the other already-saved values. Uses upsert by user_id to cover both
+ * the case where a seed already exists and the case of a missing row (new user).
+ * Uses getUser() — never getSession().
  *
  * @param {{low_stock_threshold?:number, profit_goal?:number, profit_goal_start?:string, profit_goal_end?:string}} prefs
  * @returns {Promise<{preferences:Object|null, error:string|null}>}
@@ -225,7 +225,7 @@ export async function getUserPreferences() {
 export async function updateUserPreferences(prefs) {
   const patch = prefs && typeof prefs === "object" ? prefs : {};
 
-  // Validação leve dos campos presentes.
+  // Light validation of the present fields.
   if ("low_stock_threshold" in patch) {
     const value = Number(patch.low_stock_threshold);
     if (!Number.isInteger(value) || value < 0) {
@@ -252,7 +252,7 @@ export async function updateUserPreferences(prefs) {
 
   if (userError || !user) {
     console.error(
-      "❌ updateUserPreferences abortado: sem usuário autenticado.",
+      "❌ updateUserPreferences aborted: no authenticated user.",
       userError
     );
     return {
@@ -272,7 +272,7 @@ export async function updateUserPreferences(prefs) {
     );
 
   if (error) {
-    console.error("❌ Erro ao atualizar preferências:", error.message, error);
+    console.error("❌ Error updating preferences:", error.message, error);
     return { preferences: null, error: error.message };
   }
 
@@ -280,11 +280,11 @@ export async function updateUserPreferences(prefs) {
 }
 
 /**
- * Traduz um erro do Supabase em mensagem amigável para duplicatas (23505).
- * A tabela products tem UNIQUE em (barcode, user_id) e (name, user_id); o nome
- * do índice violado vem em error.message, então detectamos qual campo colidiu.
+ * Translates a Supabase error into a friendly message for duplicates (23505).
+ * The products table has UNIQUE on (barcode, user_id) and (name, user_id); the name
+ * of the violated index comes in error.message, so we detect which field collided.
  * @param {{code?:string, message?:string}} error
- * @returns {string|null} Mensagem amigável, ou null se não for duplicata
+ * @returns {string|null} Friendly message, or null if it's not a duplicate
  */
 function duplicateProductMessage(error) {
   if (error?.code !== "23505") return null;
@@ -299,9 +299,9 @@ function duplicateProductMessage(error) {
 }
 
 /**
- * Inserir um novo produto
- * @param {Object} product - Dados do produto
- * @returns {Promise<{data:Object|null, error:string|null}>} Produto criado ou erro amigável
+ * Insert a new product
+ * @param {Object} product - Product data
+ * @returns {Promise<{data:Object|null, error:string|null}>} Created product, or a friendly error
  */
 export async function createProduct(product) {
   try {
@@ -324,12 +324,12 @@ export async function createProduct(product) {
       throw error;
     }
 
-    console.log("✅ Produto criado com sucesso!");
+    console.log("✅ Product created successfully!");
     const created = data?.[0] || null;
 
-    // Auditoria (não crítica): registra a entrada inicial de estoque como
-    // movimento type='IN', no mesmo formato dos OUT de venda. Se falhar, o
-    // produto permanece criado — createInventoryMovement retorna null sem lançar.
+    // Audit (non-critical): records the initial stock entry as a
+    // type='IN' movement, in the same format as sale OUTs. If it fails, the
+    // product remains created — createInventoryMovement returns null without throwing.
     if (created?.id) {
       const initialQty = Number(created.current_stock) || 0;
       if (initialQty > 0) {
@@ -341,7 +341,7 @@ export async function createProduct(product) {
         });
         if (!movement) {
           console.error(
-            "⚠️ Produto criado, mas falhou ao registrar entrada inicial (type='IN') em inventory_movements."
+            "⚠️ Product created, but failed to record initial entry (type='IN') in inventory_movements."
           );
         }
       }
@@ -349,20 +349,20 @@ export async function createProduct(product) {
 
     return { data: created, error: null };
   } catch (err) {
-    console.error("❌ Erro ao criar produto:", err.message);
+    console.error("❌ Error creating product:", err.message);
     return { data: null, error: err.message || "Falha ao salvar produto no banco" };
   }
 }
 
 /**
- * Atualizar um produto existente
- * @param {number} id - ID do produto
- * @param {Object} updates - Dados a atualizar
- * @returns {Promise<{data:Object|null, error:string|null}>} Produto atualizado ou erro amigável
+ * Update an existing product
+ * @param {number} id - Product ID
+ * @param {Object} updates - Data to update
+ * @returns {Promise<{data:Object|null, error:string|null}>} Updated product, or a friendly error
  */
 export async function updateProduct(id, updates) {
   try {
-    // Captura a quantidade ANTERIOR antes do UPDATE para detectar reposição.
+    // Captures the PREVIOUS quantity before the UPDATE to detect restocking.
     const { data: atual } = await supabase
       .from("products")
       .select("current_stock")
@@ -381,12 +381,12 @@ export async function updateProduct(id, updates) {
       throw error;
     }
 
-    console.log("✅ Produto atualizado com sucesso!");
+    console.log("✅ Product updated successfully!");
     const updated = data?.[0] || null;
 
-    // Auditoria (não crítica): se a quantidade AUMENTOU, registra a diferença
-    // como movimento type='IN'. Saída manual (diferença <= 0) não é rastreada
-    // aqui. Falha no movimento não reverte o UPDATE (retorna null sem lançar).
+    // Audit (non-critical): if the quantity INCREASED, records the difference
+    // as a type='IN' movement. Manual removal (difference <= 0) is not tracked
+    // here. A movement failure does not revert the UPDATE (returns null without throwing).
     if ("current_stock" in updates) {
       const qtdAnterior = Number(atual?.current_stock) || 0;
       const qtdNova = Number(updates.current_stock) || 0;
@@ -400,7 +400,7 @@ export async function updateProduct(id, updates) {
         });
         if (!movement) {
           console.error(
-            "⚠️ Produto atualizado, mas falhou ao registrar reposição (type='IN') em inventory_movements."
+            "⚠️ Product updated, but failed to record restock (type='IN') in inventory_movements."
           );
         }
       }
@@ -408,7 +408,7 @@ export async function updateProduct(id, updates) {
 
     return { data: updated, error: null };
   } catch (err) {
-    console.error("❌ Erro ao atualizar produto:", err.message);
+    console.error("❌ Error updating product:", err.message);
     return {
       data: null,
       error: err.message || "Falha ao atualizar produto no banco",
@@ -417,27 +417,27 @@ export async function updateProduct(id, updates) {
 }
 
 /**
- * Deletar um produto
- * @param {number} id - ID do produto
- * @returns {Promise<boolean>} true se deletado, false caso contrário
+ * Delete a product
+ * @param {number} id - Product ID
+ * @returns {Promise<boolean>} true if deleted, false otherwise
  */
 export async function deleteProduct(id) {
   try {
     const { error } = await supabase.from("products").delete().eq("id", id);
 
     if (error) throw error;
-    console.log("✅ Produto deletado com sucesso!");
+    console.log("✅ Product deleted successfully!");
     return true;
   } catch (err) {
-    console.error("❌ Erro ao deletar produto:", err.message);
+    console.error("❌ Error deleting product:", err.message);
     return false;
   }
 }
 
 /**
- * Registrar uma movimentação de estoque
- * @param {Object} movement - Dados da movimentação
- * @returns {Promise<Object|null>} Movimentação registrada ou null
+ * Record an inventory movement
+ * @param {Object} movement - Movement data
+ * @returns {Promise<Object|null>} Recorded movement, or null
  */
 export async function createInventoryMovement(movement) {
   try {
@@ -455,19 +455,19 @@ export async function createInventoryMovement(movement) {
       .select();
 
     if (error) throw error;
-    console.log("✅ Movimentação registrada com sucesso!");
+    console.log("✅ Movement recorded successfully!");
     return data?.[0] || null;
   } catch (err) {
-    console.error("❌ Erro ao registrar movimentação:", err.message);
+    console.error("❌ Error recording movement:", err.message);
     return null;
   }
 }
 
 /**
- * Buscar as entradas de mercadoria (inventory_movements type='IN') do usuário
- * logado dentro de um intervalo de datas, já com os dados do produto e categoria
- * embutidos para alimentar o PDF de entradas.
- * @param {{startDate:string, endDate:string}} range - datas no formato YYYY-MM-DD
+ * Fetch the logged-in user's inbound goods movements (inventory_movements type='IN')
+ * within a date range, already with the product and category data
+ * embedded to feed the inbound PDF.
+ * @param {{startDate:string, endDate:string}} range - dates in YYYY-MM-DD format
  * @returns {Promise<{data:Array|null, error:string|null}>}
  */
 export async function fetchInboundMovements({ startDate, endDate }) {
@@ -502,11 +502,11 @@ export async function fetchInboundMovements({ startDate, endDate }) {
 }
 
 /**
- * Buscar as saídas de mercadoria (inventory_movements type='OUT') do usuário
- * logado dentro de um intervalo de datas, já com os dados do produto e categoria
- * embutidos para alimentar o PDF de saídas. Usa `price` (preço de venda) porque
- * saída representa faturamento, não custo.
- * @param {{startDate:string, endDate:string}} range - datas no formato YYYY-MM-DD
+ * Fetch the logged-in user's outbound goods movements (inventory_movements type='OUT')
+ * within a date range, already with the product and category data
+ * embedded to feed the outbound PDF. Uses `price` (sale price) because
+ * an outbound movement represents revenue, not cost.
+ * @param {{startDate:string, endDate:string}} range - dates in YYYY-MM-DD format
  * @returns {Promise<{data:Array|null, error:string|null}>}
  */
 export async function fetchOutboundMovements({ startDate, endDate }) {
@@ -541,7 +541,7 @@ export async function fetchOutboundMovements({ startDate, endDate }) {
 }
 
 /**
- * Registrar um evento de log de produto (ENTRADA / SAIDA / ALTERACAO)
+ * Record a product log event (ENTRADA / SAIDA / ALTERACAO)
  * @param {{product_id: number, type: 'ENTRADA'|'SAIDA'|'ALTERACAO', quantity?: number}} log
  * @returns {Promise<Object|null>}
  */
@@ -563,13 +563,13 @@ export async function createInventoryLog({ product_id, type, quantity = 0 }) {
     if (error) throw error;
     return data?.[0] || null;
   } catch (err) {
-    console.error("❌ Erro ao registrar log de produto:", err.message);
+    console.error("❌ Error recording product log:", err.message);
     return null;
   }
 }
 
 /**
- * Buscar o histórico (log de auditoria) de um produto, mais recente primeiro
+ * Fetch a product's history (audit log), most recent first
  * @param {number} productId
  * @returns {Promise<Array>}
  */
@@ -585,7 +585,7 @@ export async function fetchProductHistory(productId) {
     return data || [];
   } catch (err) {
     console.error(
-      `❌ Erro ao buscar histórico do produto ${productId}:`,
+      `❌ Error fetching history for product ${productId}:`,
       err.message
     );
     return [];
@@ -593,16 +593,16 @@ export async function fetchProductHistory(productId) {
 }
 
 /**
- * Registrar uma venda persistindo cada item do carrinho em public.sales.
- * É a fonte DURÁVEL dos relatórios (sobrevive a reload / troca de aba).
+ * Record a sale by persisting each cart item to public.sales.
+ * This is the DURABLE source for the reports (survives reload / tab switch).
  *
- * ⚠️ NÃO decrementa estoque: quem dá baixa em products.current_stock é o
- * trigger disparado pelo movimento OUT em inventory_movements (ver sellItems).
- * Por isso NÃO existe updateProductStock — decrementar aqui causaria baixa dupla.
- * NÃO envia gross_profit — é coluna GERADA pelo banco.
+ * ⚠️ Does NOT decrement stock: products.current_stock is decremented by the
+ * trigger fired by the OUT movement in inventory_movements (see sellItems).
+ * That's why there is NO updateProductStock — decrementing here would cause a double deduction.
+ * Does NOT send gross_profit — it's a column GENERATED by the database.
  *
- * Usa getUser() (nunca getSession()) e envia user_id explícito para satisfazer
- * a policy RLS mesmo se o DEFAULT auth.uid() não expandir no contexto da request.
+ * Uses getUser() (never getSession()) and sends an explicit user_id to satisfy
+ * the RLS policy even if the DEFAULT auth.uid() doesn't expand in the request context.
  *
  * @param {Array<{id:string, nome:string, categoria:string, cartQty:number, precoVenda:number, precoCusto:number}>} items
  * @returns {Promise<{data: Array|null, error: {message:string}|null}>}
@@ -628,7 +628,7 @@ export async function createSale(items) {
     qty_sold: item.cartQty,
     sale_price: item.precoVenda,
     cost_price: item.precoCusto,
-    // gross_profit: NÃO enviar — coluna gerada pelo banco.
+    // gross_profit: do NOT send — column generated by the database.
   }));
 
   const { data, error } = await supabase
@@ -637,16 +637,16 @@ export async function createSale(items) {
     .select();
 
   if (error) {
-    console.error("❌ Erro ao registrar venda:", error.message, error);
+    console.error("❌ Error recording sale:", error.message, error);
   }
 
   return { data, error };
 }
 
 /**
- * Buscar o histórico de vendas do usuário logado, mais recente primeiro.
- * A RLS filtra automaticamente por auth.uid() = user_id.
- * @returns {Promise<Array>} Linhas de public.sales ou [] em caso de erro
+ * Fetch the logged-in user's sales history, most recent first.
+ * RLS automatically filters by auth.uid() = user_id.
+ * @returns {Promise<Array>} Rows from public.sales, or [] on error
  */
 export async function fetchSales() {
   const { data, error } = await supabase
@@ -655,7 +655,7 @@ export async function fetchSales() {
     .order("sold_at", { ascending: false });
 
   if (error) {
-    console.error("❌ Erro ao buscar vendas:", error.message);
+    console.error("❌ Error fetching sales:", error.message);
     throw error;
   }
   return data || [];

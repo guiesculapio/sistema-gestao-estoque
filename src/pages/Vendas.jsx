@@ -17,7 +17,7 @@ import {
   Info,
 } from "lucide-react";
 
-// ── SUB-COMPONENTES ──────────────────────────────────────────────
+// ── SUB-COMPONENTS ──────────────────────────────────────────────
 
 const BarcodeScannerInput = ({ onSearch, error }) => {
   const [code, setCode] = useState("");
@@ -128,12 +128,12 @@ const CartItem = ({ item, onUpdateQty, onRemove }) => (
   </div>
 );
 
-// ── COMPONENTE PRINCIPAL (VIEW) ──────────────────────────────────
+// ── MAIN COMPONENT (VIEW) ──────────────────────────────────
 
 export default function Vendas() {
   const { products, sellItems } = useInventory();
   const [cart, setCart] = useState([]);
-  const [error, setError] = useState(""); // Ajustado para string para mensagens dinâmicas
+  const [error, setError] = useState(""); // Adjusted to a string for dynamic messages
   const [success, setSuccess] = useState(false);
 
   const handleSearch = useCallback(
@@ -205,8 +205,8 @@ export default function Vendas() {
       setCart([]);
       setTimeout(() => setSuccess(false), 4000);
     } catch (err) {
-      // sellItems lança se qualquer operação do banco falhar — não limpamos o
-      // carrinho nem mostramos sucesso, para o operador poder tentar de novo.
+      // sellItems throws if any database operation fails — we don't clear the
+      // cart or show success, so the operator can try again.
       setError(err.message || "Falha ao processar a venda");
       setTimeout(() => setError(""), 6000);
     }

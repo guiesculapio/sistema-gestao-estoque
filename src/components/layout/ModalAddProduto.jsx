@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Save, Barcode, Plus, Check, AlertCircle } from "lucide-react";
-// Mantendo o seu caminho de importação original
+// Keeping the original import path
 import { useInventory } from "../../context/InventoryContext";
 import { useCategories } from "../../hooks/useCategories";
 import { computeStockStatus } from "../../lib/stock";
@@ -36,7 +36,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
 
   const [formData, setFormData] = useState(initialState);
 
-  // EFFEITO DE EDIÇÃO: Sincroniza o form quando abre para editar ou limpa para novo
+  // EDIT EFFECT: Syncs the form when opening to edit, or clears it for a new one
   useEffect(() => {
     if (productToEdit) {
       setFormData({
@@ -50,7 +50,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
     } else {
       setFormData(initialState);
     }
-    // Limpa erros ao (re)abrir o modal ou trocar de produto.
+    // Clears errors when (re)opening the modal or switching products.
     setFormError(null);
     setCategoryError(null);
   }, [productToEdit, isOpen]);
@@ -61,8 +61,8 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
     e.preventDefault();
     setFormError(null);
 
-    // Garante que category_id é um inteiro válido (> 0) antes de mandar pro Supabase.
-    // Sem isso, "" cairia em Number("") = 0 e quebraria a FK em categories (23503).
+    // Ensures category_id is a valid integer (> 0) before sending it to Supabase.
+    // Without this, "" would become Number("") = 0 and break the FK in categories (23503).
     const categoriaIdNum = Number(formData.categoria_id);
     if (!Number.isInteger(categoriaIdNum) || categoriaIdNum <= 0) {
       setCategoryError("Selecione uma categoria válida antes de salvar.");
@@ -86,8 +86,8 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
       : await addProduct(dadosProcessados);
     setSaving(false);
 
-    // Só fecha se salvou de verdade. Em erro (ex.: duplicata 23505), mostra
-    // a mensagem inline e mantém o modal aberto com os dados preenchidos.
+    // Only closes if it actually saved. On error (e.g. duplicate 23505), shows
+    // the message inline and keeps the modal open with the filled-in data.
     if (!result?.success) {
       setFormError(result?.error || "Não foi possível salvar o produto.");
       return;
@@ -120,9 +120,9 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
             : "Preencha os dados para cadastrar um novo produto."}
         </p>
 
-        {/* Formulário */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* BANNER DE ERRO (ex.: produto duplicado) */}
+          {/* ERROR BANNER (e.g. duplicate product) */}
           {formError && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-3 py-2.5 mb-4">
               <AlertCircle size={16} className="flex-shrink-0" />
@@ -130,7 +130,7 @@ export default function ModalAddProduto({ isOpen, onClose, productToEdit }) {
             </div>
           )}
 
-          {/* CAMPO: CÓDIGO DE BARRAS */}
+          {/* FIELD: BARCODE */}
           <div>
             <label className={LABEL_CLASS}>
               <span className="inline-flex items-center gap-2">

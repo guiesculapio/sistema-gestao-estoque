@@ -3,14 +3,14 @@ import autoTable from "jspdf-autotable";
 import { brl } from "../utils/format";
 
 // ─────────────────────────────────────────────────────────────
-// Helpers compartilhados
+// Shared helpers
 // ─────────────────────────────────────────────────────────────
 function formatDate(dateStr) {
   if (!dateStr) return "—";
   return new Date(dateStr).toLocaleDateString("pt-BR");
 }
 
-// Desenha o cabeçalho Estoklab da seção na página atual do doc.
+// Draws the section's Estoklab header on the doc's current page.
 function drawHeader(doc, { title, startDate, endDate, userEmail }) {
   doc.setFontSize(18);
   doc.setTextColor(15, 118, 110); // teal-600
@@ -23,12 +23,12 @@ function drawHeader(doc, { title, startDate, endDate, userEmail }) {
   doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 42);
   doc.text(`Conta: ${userEmail}`, 14, 49);
 
-  // Linha separadora
+  // Separator line
   doc.setDrawColor(226, 232, 240); // slate-200
   doc.line(14, 53, 196, 53);
 }
 
-// Aplica o rodapé de paginação em TODAS as páginas do doc.
+// Applies the pagination footer to ALL pages of the doc.
 function drawFooters(doc) {
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -45,7 +45,7 @@ function drawFooters(doc) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Entradas de mercadoria (type='IN') — usa cost_price
+// Inbound goods (type='IN') — uses cost_price
 // ─────────────────────────────────────────────────────────────
 export function generateInboundPDF({
   movements,
@@ -56,7 +56,7 @@ export function generateInboundPDF({
   save = true,
   fileName,
 }) {
-  // Se recebeu um doc existente, esta seção entra numa nova página.
+  // If an existing doc was received, this section goes on a new page.
   const document = doc ?? new jsPDF();
   if (doc) document.addPage();
 
@@ -67,7 +67,7 @@ export function generateInboundPDF({
     userEmail,
   });
 
-  // Prepara linhas da tabela
+  // Prepares the table rows
   let totalCusto = 0;
   const rows = movements.map((m) => {
     const nome = m.products?.name ?? "—";
@@ -108,8 +108,8 @@ export function generateInboundPDF({
     },
   });
 
-  // Só finaliza (rodapé em todas as páginas + save) quando standalone ou quando
-  // esta é a última seção de um PDF combinado.
+  // Only finalizes (footer on all pages + save) when standalone or when
+  // this is the last section of a combined PDF.
   if (save) {
     drawFooters(document);
     document.save(fileName ?? `entradas_${startDate}_${endDate}.pdf`);
@@ -119,7 +119,7 @@ export function generateInboundPDF({
 }
 
 // ─────────────────────────────────────────────────────────────
-// Saídas de mercadoria (type='OUT') — usa price (preço de venda)
+// Outbound goods (type='OUT') — uses price (sale price)
 // ─────────────────────────────────────────────────────────────
 export function generateOutboundPDF({
   movements,
@@ -130,7 +130,7 @@ export function generateOutboundPDF({
   save = true,
   fileName,
 }) {
-  // Se recebeu um doc existente, esta seção entra numa nova página.
+  // If an existing doc was received, this section goes on a new page.
   const document = doc ?? new jsPDF();
   if (doc) document.addPage();
 
@@ -141,7 +141,7 @@ export function generateOutboundPDF({
     userEmail,
   });
 
-  // Prepara linhas da tabela
+  // Prepares the table rows
   let totalFaturado = 0;
   const rows = movements.map((m) => {
     const nome = m.products?.name ?? "—";

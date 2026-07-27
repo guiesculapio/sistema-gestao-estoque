@@ -19,7 +19,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-// Bibliotecas de exportação
+// Export libraries
 import * as XLSX from "xlsx";
 import {
   fetchInboundMovements,
@@ -29,7 +29,7 @@ import { generateInboundPDF, generateOutboundPDF } from "../lib/generatePDF";
 import { brl, brlK } from "../utils/format";
 
 // ─────────────────────────────────────────────────────────────
-// 1. CONFIGURAÇÕES E HELPERS
+// 1. CONFIGURATION AND HELPERS
 // ─────────────────────────────────────────────────────────────
 
 const PERIODOS = [
@@ -49,7 +49,7 @@ const pct = (v) =>
   }) + "%";
 
 // ─────────────────────────────────────────────────────────────
-// 2. SUB-COMPONENTES DE UI
+// 2. UI SUB-COMPONENTS
 // ─────────────────────────────────────────────────────────────
 
 function PeriodSelector({ value, onChange }) {
@@ -176,7 +176,7 @@ function KpiCard({ label, value, sub }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 3. COMPONENTE PRINCIPAL
+// 3. MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 
 export default function Relatorios() {
@@ -184,7 +184,7 @@ export default function Relatorios() {
   const { user } = useAuth();
   const [periodo, setPeriodo] = useState("30d");
 
-  // Estado do modal de exportação PDF de movimentações
+  // State for the movements PDF export modal
   const [pdfModal, setPdfModal] = useState(false);
   const [pdfTipo, setPdfTipo] = useState("IN"); // 'IN' | 'OUT'
   const [pdfDates, setPdfDates] = useState({ start: "", end: "" });
@@ -259,7 +259,7 @@ export default function Relatorios() {
     [filteredMetrics.topSelling]
   );
 
-  // --- LÓGICA DE EXPORTAÇÃO ---
+  // --- EXPORT LOGIC ---
 
   const handleExportExcel = () => {
     const data = salesFiltradas.map((s) => ({
@@ -325,7 +325,7 @@ export default function Relatorios() {
 
   return (
     <div className="bg-slate-50 space-y-6">
-      {/* Cabeçalho */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-slate-900 font-black text-xl tracking-tight">
@@ -354,7 +354,7 @@ export default function Relatorios() {
         </div>
       </div>
 
-      {/* Gráfico de Performance Real */}
+      {/* Real Performance Chart */}
       <div className="bg-white rounded-xl border border-slate-200 hover:border-brand transition-all duration-200 overflow-hidden">
         <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-slate-100 flex-wrap gap-3">
           <div>
@@ -472,7 +472,7 @@ export default function Relatorios() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Card: Top Lucro Real */}
+        {/* Card: Top Real Profit */}
         <div className="bg-white rounded-xl border border-slate-200 hover:border-brand transition-all duration-200 overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100">
             <div>
@@ -513,7 +513,7 @@ export default function Relatorios() {
           </div>
         </div>
 
-        {/* Card: Capital Preso */}
+        {/* Card: Locked Capital */}
         <div className="bg-white rounded-xl border border-slate-200 hover:border-brand transition-all duration-200 overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100">
             <div>
@@ -558,7 +558,7 @@ export default function Relatorios() {
         </div>
       </div>
 
-      {/* Resumo Financeiro Real */}
+      {/* Real Financial Summary */}
       <div className="bg-white rounded-xl border border-slate-200 hover:border-brand transition-all duration-200 overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-wrap gap-3">
           <div className="flex items-center gap-2.5">
@@ -646,7 +646,7 @@ export default function Relatorios() {
         </div>
       </div>
 
-      {/* Modal de exportação PDF de entradas de mercadorias */}
+      {/* PDF export modal for goods movements */}
       {pdfModal && (
         <div
           className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -665,7 +665,7 @@ export default function Relatorios() {
               Selecione o tipo e o período a incluir no PDF.
             </p>
 
-            {/* Seletor de tipo de relatório */}
+            {/* Report type selector */}
             <div className="grid grid-cols-2 gap-2 mb-4">
               {[
                 { value: "IN", label: "Entradas" },

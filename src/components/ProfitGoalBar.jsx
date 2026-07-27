@@ -7,8 +7,8 @@ import { brl } from "../utils/format";
 // Helpers
 // ─────────────────────────────────────────────────────────────
 
-// Formata "YYYY-MM-DD" (date puro do banco) como DD/MM/YYYY sem cair em
-// deslocamento de timezone (não usa new Date()).
+// Formats "YYYY-MM-DD" (plain date from the database) as DD/MM/YYYY without
+// falling into a timezone offset (doesn't use new Date()).
 const formatDate = (iso) => {
   if (!iso) return "";
   const [y, m, d] = String(iso).slice(0, 10).split("-");
@@ -17,7 +17,7 @@ const formatDate = (iso) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Componente
+// Component
 // ─────────────────────────────────────────────────────────────
 export default function ProfitGoalBar() {
   const {

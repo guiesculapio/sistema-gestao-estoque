@@ -9,13 +9,13 @@ import {
 import { useAuth } from "../../context/AuthContext";
 
 /**
- * NAV_ITEMS — Itens de navegação principal.
- * Adicionado: Rota "/vendas" com ícone ShoppingCart.
+ * NAV_ITEMS — Main navigation items.
+ * Added: "/vendas" route with the ShoppingCart icon.
  */
 const NAV_ITEMS = [
   { to: "/dashboard", icon: Home, label: "Dashboard" },
   { to: "/inventario", icon: Package, label: "Inventário" },
-  { to: "/vendas", icon: ShoppingCart, label: "Vendas" }, // <-- NOVO ITEM
+  { to: "/vendas", icon: ShoppingCart, label: "Vendas" }, // <-- NEW ITEM
   { to: "/relatorios", icon: BarChart2, label: "Relatórios" },
 ];
 
@@ -61,7 +61,7 @@ export default function Sidebar() {
   return (
     <div className="p-3 flex-shrink-0 h-screen sticky top-0 bg-slate-100 select-none">
       <aside className="bg-slate-900 w-56 h-full rounded-2xl flex flex-col overflow-hidden">
-        {/* ── Logotipo / Marca ── */}
+        {/* ── Logo / Brand ── */}
         <div className="px-4 py-5 flex items-center gap-2.5">
           <img
             src="/logo.jpg"
@@ -90,7 +90,7 @@ export default function Sidebar() {
             <NavItem key={item.to} {...item} />
           ))}
 
-          {/* Card de usuário */}
+          {/* User card */}
           <div className="mt-2 flex items-center gap-2.5 px-3 py-2.5 bg-slate-800 rounded-xl">
             <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold">
               {initials}

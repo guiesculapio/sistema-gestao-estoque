@@ -40,7 +40,7 @@ const TABS = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// ABA: LIMIAR DE ESTOQUE BAIXO
+// TAB: LOW STOCK THRESHOLD
 // ─────────────────────────────────────────────────────────────
 function LimiarEstoqueSection() {
   const {
@@ -89,7 +89,7 @@ function LimiarEstoqueSection() {
 
   return (
     <div className="space-y-6">
-      {/* Limiar global */}
+      {/* Global threshold */}
       <div>
         <h3 className="text-sm font-bold text-slate-700">
           Limiar global do usuário
@@ -146,7 +146,7 @@ function LimiarEstoqueSection() {
         </div>
       </div>
 
-      {/* Limiar por produto */}
+      {/* Per-product threshold */}
       <div className="pt-4 border-t border-slate-100">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
@@ -182,7 +182,7 @@ function ProdutosMinStockTable({ products, globalThreshold, updateProduct }) {
   const [busca, setBusca] = useState("");
   const [drafts, setDrafts] = useState({}); // id -> string
   const [savingId, setSavingId] = useState(null);
-  const [rowError, setRowError] = useState({}); // id -> mensagem
+  const [rowError, setRowError] = useState({}); // id -> message
 
   const filtrados = useMemo(() => {
     const termo = busca.toLowerCase().trim();
@@ -387,7 +387,7 @@ function ProdutosMinStockTable({ products, globalThreshold, updateProduct }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ABA: CATEGORIAS
+// TAB: CATEGORIES
 // ─────────────────────────────────────────────────────────────
 function CategoriasSection() {
   const {
@@ -400,7 +400,7 @@ function CategoriasSection() {
   const [editingName, setEditingName] = useState("");
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [rowError, setRowError] = useState({}); // id -> mensagem
+  const [rowError, setRowError] = useState({}); // id -> message
 
   const startEdit = (cat) => {
     setEditingId(cat.id);
@@ -606,14 +606,14 @@ function CategoriasSection() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PÁGINA
+// PAGE
 // ─────────────────────────────────────────────────────────────
 export default function Configuracoes() {
   const [activeTab, setActiveTab] = useState("categorias");
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Cabeçalho */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center shadow-sm">
@@ -630,7 +630,7 @@ export default function Configuracoes() {
         </div>
       </div>
 
-      {/* Card principal */}
+      {/* Main card */}
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
         {/* Tabs */}
         <div className="flex border-b border-slate-200/80 overflow-x-auto">
@@ -662,7 +662,7 @@ export default function Configuracoes() {
           })}
         </div>
 
-        {/* Conteúdo da tab ativa */}
+        {/* Active tab content */}
         <div className="p-6">
           {activeTab === "categorias" && <CategoriasSection />}
           {activeTab === "estoque" && <LimiarEstoqueSection />}

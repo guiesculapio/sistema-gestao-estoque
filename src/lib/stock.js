@@ -1,13 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// REGRA DE NEGÓCIO CENTRAL: LIMIAR DE ESTOQUE BAIXO
+// CORE BUSINESS RULE: LOW STOCK THRESHOLD
 // ═══════════════════════════════════════════════════════════════════════════════
-// Fonte única da verdade para "quando um produto está com estoque baixo":
-//   1) Se product.min_stock estiver definido (não-nulo), ele manda para AQUELE
-//      produto, ignorando o threshold global do usuário.
-//   2) Se product.min_stock for nulo, cai no user_preferences.low_stock_threshold.
-//   3) Se nenhum dos dois estiver disponível, usa o default global do sistema.
-// Todo consumidor que precise decidir cor, badge, contador ou status DEVE usar
-// as funções abaixo — nunca replicar a comparação inline.
+// Single source of truth for "when a product is low on stock":
+//   1) If product.min_stock is set (non-null), it takes precedence for THAT
+//      product, ignoring the user's global threshold.
+//   2) If product.min_stock is null, falls back to user_preferences.low_stock_threshold.
+//   3) If neither is available, uses the system's global default.
+// Any consumer that needs to decide color, badge, counter, or status MUST use
+// the functions below — never replicate the comparison inline.
 
 export const DEFAULT_LOW_STOCK_THRESHOLD = 5;
 
@@ -28,16 +28,16 @@ export function resolveLowStockThreshold(product, userPreferences) {
   return DEFAULT_LOW_STOCK_THRESHOLD;
 }
 
-// Retorna true somente quando o produto tem estoque > 0 e abaixo do limiar.
-// Produtos zerados são "esgotados", não "estoque baixo".
+// Returns true only when the product has stock > 0 and below the threshold.
+// Zeroed-out products are "sold out", not "low stock".
 export function isLowStock(product, userPreferences) {
   const qty = getQty(product);
   if (qty <= 0) return false;
   return qty < resolveLowStockThreshold(product, userPreferences);
 }
 
-// Deriva o status canônico do produto a partir da quantidade + regra de limiar.
-// Usado no submit do modal e no pós-venda do Context.
+// Derives the product's canonical status from the quantity + threshold rule.
+// Used on modal submit and post-sale in the Context.
 export function computeStockStatus(product, userPreferences) {
   const qty = getQty(product);
   if (qty <= 0) return "esgotado";

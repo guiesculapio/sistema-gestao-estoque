@@ -23,8 +23,8 @@ import { useUserPreferences } from "../hooks/useUserPreferences";
 export const InventoryContext = createContext();
 
 // ─────────────────────────────────────────────────────────────
-// Tradução entre o formato PT do Context e o schema EN do Supabase.
-// Mantém a API externa em PT para não quebrar consumidores.
+// Translation between the Context's PT format and Supabase's EN schema.
+// Keeps the external API in PT so as not to break consumers.
 // ─────────────────────────────────────────────────────────────
 function toSupabaseProduct(p) {
   return {
@@ -38,7 +38,7 @@ function toSupabaseProduct(p) {
         ? Number.parseFloat(p.precoCusto)
         : null,
     price: Number.parseFloat(p.precoVenda) || 0,
-    // min_stock null = usa threshold global do user_preferences (regra em src/lib/stock.js).
+    // min_stock null = uses the global threshold from user_preferences (rule in src/lib/stock.js).
     min_stock:
       p.min_stock != null && p.min_stock !== ""
         ? Number.parseInt(p.min_stock, 10)
@@ -62,8 +62,8 @@ function fromSupabaseProduct(row) {
   };
 }
 
-// Tradução linha de public.sales (schema EN) → shape PT consumido pelos
-// relatórios. lucroReal usa a coluna GERADA gross_profit quando presente.
+// Row translation from public.sales (EN schema) → PT shape consumed by the
+// reports. lucroReal uses the GENERATED gross_profit column when present.
 function fromSupabaseSale(row) {
   const sale = Number(row.sale_price);
   const cost = row.cost_price != null ? Number(row.cost_price) : 0;
@@ -82,7 +82,7 @@ function fromSupabaseSale(row) {
   };
 }
 
-// Tradução parcial PT → EN para updates (não sobrescreve campos ausentes).
+// Partial PT → EN translation for updates (does not overwrite missing fields).
 function toSupabaseUpdates(updates) {
   const payload = {};
   if ("nome" in updates) payload.name = updates.nome;
@@ -115,7 +115,7 @@ export function InventoryProvider({ children }) {
   const [loadError, setLoadError] = useState(null);
   const { preferences: userPreferences } = useUserPreferences();
 
-  // Carregar produtos do Supabase na montagem
+  // Load products from Supabase on mount
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -126,7 +126,7 @@ export function InventoryProvider({ children }) {
         setLoadError(null);
       } catch (err) {
         if (cancelled) return;
-        console.error("[InventoryContext] Erro ao carregar produtos:", err);
+        console.error("[InventoryContext] Error loading products:", err);
         setLoadError("Falha ao carregar produtos. Verifique sua conexão.");
       }
     })();
@@ -135,8 +135,8 @@ export function InventoryProvider({ children }) {
     };
   }, []);
 
-  // Carregar histórico de vendas do Supabase na montagem (fonte durável dos
-  // relatórios — antes o array `sales` era só estado local e sumia no reload).
+  // Load sales history from Supabase on mount (durable source for the
+  // reports — previously the `sales` array was only local state and was lost on reload).
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -146,7 +146,7 @@ export function InventoryProvider({ children }) {
         setSales(rows.map(fromSupabaseSale));
       } catch (err) {
         if (cancelled) return;
-        console.error("[InventoryContext] Erro ao carregar vendas:", err);
+        console.error("[InventoryContext] Error loading sales:", err);
         setLoadError("Falha ao carregar vendas. Verifique sua conexão.");
       }
     })();
@@ -155,23 +155,23 @@ export function InventoryProvider({ children }) {
     };
   }, []);
 
-  // --- FUNÇÕES CRUD ---
+  // --- CRUD FUNCTIONS ---
   const addProduct = useCallback(async (newProduct) => {
     const payload = toSupabaseProduct(newProduct);
     const { data: saved, error } = await supabaseCreateProduct(payload);
 
     if (error || !saved) {
       console.error(
-        "❌ addProduct: falha ao persistir no Supabase. Estado local NÃO foi atualizado."
+        "❌ addProduct: failed to persist to Supabase. Local state was NOT updated."
       );
-      // Repassa a mensagem específica (ex.: duplicata 23505) para a UI.
+      // Forwards the specific message (e.g. duplicate 23505) to the UI.
       return { success: false, error: error || "Falha ao salvar produto no banco" };
     }
 
     const local = fromSupabaseProduct(saved);
     setProducts((prev) => [...prev, local]);
 
-    // Log de auditoria: criação conta como ENTRADA do estoque inicial.
+    // Audit log: creation counts as initial stock ENTRADA.
     await createInventoryLog({
       product_id: local.id,
       type: "ENTRADA",
@@ -187,9 +187,9 @@ export function InventoryProvider({ children }) {
 
     if (error || !saved) {
       console.error(
-        `❌ updateProduct: falha ao atualizar produto ${id} no Supabase. Estado local NÃO foi atualizado.`
+        `❌ updateProduct: failed to update product ${id} in Supabase. Local state was NOT updated.`
       );
-      // Repassa a mensagem específica (ex.: duplicata 23505) para a UI.
+      // Forwards the specific message (e.g. duplicate 23505) to the UI.
       return {
         success: false,
         error: error || "Falha ao atualizar produto no banco",
@@ -198,7 +198,7 @@ export function InventoryProvider({ children }) {
 
     const local = fromSupabaseProduct(saved);
 
-    // Calcula delta de qtd usando o estado anterior (snapshot dentro do updater).
+    // Calculates the qty delta using the previous state (snapshot inside the updater).
     let qtdDelta = 0;
     setProducts((prev) => {
       if ("qtd" in updatedData) {
@@ -222,7 +222,7 @@ export function InventoryProvider({ children }) {
 
     if (!ok) {
       console.error(
-        `❌ deleteProduct: falha ao excluir produto ${id} no Supabase. Estado local NÃO foi atualizado.`
+        `❌ deleteProduct: failed to delete product ${id} in Supabase. Local state was NOT updated.`
       );
       return { success: false, error: "Falha ao excluir produto no banco" };
     }
@@ -231,13 +231,13 @@ export function InventoryProvider({ children }) {
     return { success: true };
   }, []);
 
-  // --- FUNÇÃO DE VENDA (PERSISTE EM public.sales + inventory_movements) ---
-  // Ordem importa e é estritamente sequencial: se QUALQUER etapa do banco
-  // falhar, lança erro e NÃO atualiza o estado local (evita divergir do banco).
+  // --- SALE FUNCTION (PERSISTS TO public.sales + inventory_movements) ---
+  // Order matters and is strictly sequential: if ANY database step
+  // fails, it throws and does NOT update local state (avoids diverging from the database).
   const sellItems = useCallback(
     async (itemsToSell) => {
-      // 1) Persistir a venda em public.sales — fonte durável dos relatórios.
-      //    É o "gate": se falhar, nada mais acontece (estoque não é tocado).
+      // 1) Persist the sale to public.sales — durable source for the reports.
+      //    This is the "gate": if it fails, nothing else happens (stock is not touched).
       const { data: salesRows, error: salesError } =
         await createSale(itemsToSell);
       if (salesError) {
@@ -248,10 +248,10 @@ export function InventoryProvider({ children }) {
         );
       }
 
-      // 2) Registrar cada saída em inventory_movements. O trigger do banco
-      //    decrementa products.current_stock automaticamente e a CHECK
-      //    constraint impede estoque negativo — por isso NÃO fazemos UPDATE
-      //    manual de estoque aqui (causaria baixa dupla).
+      // 2) Record each outgoing movement in inventory_movements. The database
+      //    trigger automatically decrements products.current_stock and the CHECK
+      //    constraint prevents negative stock — that's why we do NOT do a manual
+      //    stock UPDATE here (it would cause a double deduction).
       const sharedSaleId = `SALE-${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)}`;
@@ -270,7 +270,7 @@ export function InventoryProvider({ children }) {
         }
       }
 
-      // 3) Log de auditoria: cada item vira uma SAIDA no inventory_logs.
+      // 3) Audit log: each item becomes a SAIDA in inventory_logs.
       await Promise.all(
         itemsToSell.map((item) =>
           createInventoryLog({
@@ -281,9 +281,9 @@ export function InventoryProvider({ children }) {
         )
       );
 
-      // 4) Só agora atualiza o estado local — depois de TODAS as operações
-      //    do banco terem retornado sem erro. Usamos as linhas retornadas
-      //    por createSale (ids e gross_profit reais vindos do banco).
+      // 4) Only now update local state — after ALL database operations
+      //    have returned without error. We use the rows returned
+      //    by createSale (real ids and gross_profit coming from the database).
       setSales((prev) => [...prev, ...(salesRows || []).map(fromSupabaseSale)]);
 
       setProducts((prevProducts) =>
@@ -314,7 +314,7 @@ export function InventoryProvider({ children }) {
     [userPreferences]
   );
 
-  // --- MÉTRICAS GLOBAIS ---
+  // --- GLOBAL METRICS ---
   const metrics = useMemo(() => {
     const stockCost = products.reduce(
       (acc, p) => acc + p.precoCusto * p.qtd,

@@ -12,10 +12,10 @@ import {
   History,
 } from "lucide-react";
 
-// Hook do contexto
+// Context hook
 import { useInventory } from "../context/InventoryContext";
 import { isLowStock } from "../lib/stock";
-// Componentes de Modal
+// Modal components
 import ModalAddProduto from "../components/layout/ModalAddProduto";
 import ModalHistorico from "../components/layout/ModalHistorico";
 import { brl } from "../utils/format";
@@ -49,7 +49,7 @@ const margemClasses = (pct) => {
 };
 
 // ─────────────────────────────────────────────
-// 2. SUB-COMPONENTES
+// 2. SUB-COMPONENTS
 // ─────────────────────────────────────────────
 
 function StatusBadge({ status }) {
@@ -207,17 +207,17 @@ function EmptyState({ query, onClear }) {
 }
 
 // ─────────────────────────────────────────────
-// 3. PÁGINA PRINCIPAL
+// 3. MAIN PAGE
 // ─────────────────────────────────────────────
 
 export default function Inventario() {
   const [busca, setBusca] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: "nome", dir: "asc" });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null); // Estado para o produto em edição
-  const [historyProduct, setHistoryProduct] = useState(null); // Produto selecionado para histórico
+  const [editingProduct, setEditingProduct] = useState(null); // State for the product being edited
+  const [historyProduct, setHistoryProduct] = useState(null); // Product selected for history
 
-  // Dados e funções do Contexto
+  // Data and functions from the Context
   const { products: produtos, deleteProduct, userPreferences } = useInventory();
 
   const produtosFiltrados = useMemo(() => {
@@ -252,7 +252,7 @@ export default function Inventario() {
     );
   };
 
-  // Função handleEdit atualizada
+  // Updated handleEdit function
   const handleEdit = (produto) => {
     setEditingProduct(produto);
     setIsModalOpen(true);
@@ -260,7 +260,7 @@ export default function Inventario() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setEditingProduct(null); // Limpa o produto em edição ao fechar
+    setEditingProduct(null); // Clears the product being edited on close
   };
 
   const handleHistory = (produto) => {
@@ -283,7 +283,7 @@ export default function Inventario() {
     }
   };
 
-  // Métricas do rodapé
+  // Footer metrics
   const totalUnidades = produtosFiltrados.reduce((acc, p) => acc + p.qtd, 0);
   const totalVenda = produtosFiltrados.reduce(
     (acc, p) => acc + p.qtd * p.precoVenda,
@@ -308,7 +308,7 @@ export default function Inventario() {
         </div>
         <button
           onClick={() => {
-            setEditingProduct(null); // Garante que é uma nova adição
+            setEditingProduct(null); // Ensures this is a new addition
             setIsModalOpen(true);
           }}
           className="flex items-center gap-2 bg-brand text-white font-bold rounded-xl px-4 py-2 hover:bg-brand-hover transition-colors duration-150"
@@ -477,14 +477,14 @@ export default function Inventario() {
         )}
       </div>
 
-      {/* MODAL ATUALIZADO COM PROPS DE EDIÇÃO */}
+      {/* MODAL UPDATED WITH EDIT PROPS */}
       <ModalAddProduto
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        productToEdit={editingProduct} // Passa o produto se estiver editando
+        productToEdit={editingProduct} // Passes the product if editing
       />
 
-      {/* MODAL DE HISTÓRICO (log de auditoria) */}
+      {/* HISTORY MODAL (audit log) */}
       <ModalHistorico
         isOpen={!!historyProduct}
         onClose={handleCloseHistory}

@@ -21,7 +21,7 @@ import {
 import { brl, brlK } from "../utils/format";
 
 // ─────────────────────────────────────────────────────────────
-// 2. SUB-COMPONENTES
+// 2. SUB-COMPONENTS
 // ─────────────────────────────────────────────────────────────
 
 function SummaryCard({ label, value, subtitle, valueClassName }) {
@@ -72,7 +72,7 @@ function ProdutoCritico({ produto, rank }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 3. ALERT DE STATUS
+// 3. STATUS ALERT
 // ─────────────────────────────────────────────────────────────
 
 function AlertMessage({ type, message, onClose }) {
@@ -101,7 +101,7 @@ function AlertMessage({ type, message, onClose }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 4. COMPONENTE PRINCIPAL
+// 4. MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -109,15 +109,15 @@ export default function Dashboard() {
 
   const [alertMessage, setAlertMessage] = useState(null);
 
-  // Mostrar erro por 5 segundos
+  // Show error for 5 seconds
   const showAlert = (message, type = "error") => {
     setAlertMessage({ type, message });
     setTimeout(() => setAlertMessage(null), 5000);
   };
 
-  // --- LÓGICA DE MÉTRICAS REAIS (atualizada para Supabase) ---
+  // --- REAL METRICS LOGIC (updated for Supabase) ---
   const dashboardStats = useMemo(() => {
-    // Soma exata de (estoque atual × preço) de todos os produtos
+    // Exact sum of (current stock × price) for all products
     const faturamentoPotencial = products.reduce(
       (acc, p) => acc + Number(p.qtd) * Number(p.precoVenda),
       0
@@ -127,9 +127,9 @@ export default function Dashboard() {
       0
     );
     const lucroEstimado = faturamentoPotencial - investimentoEstoque;
-    // Inclui na reposição urgente produtos esgotados (qtd <= 0) ou abaixo do
-    // limiar (isLowStock respeita min_stock por produto e o low_stock_threshold
-    // do usuário — fonte única da verdade em src/lib/stock.js).
+    // Includes in urgent restocking products that are sold out (qty <= 0) or below the
+    // threshold (isLowStock respects per-product min_stock and the user's
+    // low_stock_threshold — single source of truth in src/lib/stock.js).
     const criticos = [...products]
       .filter((p) => {
         const qty = Number(p.qtd) || 0;
@@ -138,7 +138,7 @@ export default function Dashboard() {
       .sort((a, b) => {
         const qa = Number(a.qtd) || 0;
         const qb = Number(b.qtd) || 0;
-        // Esgotados (qtd <= 0) primeiro, depois por qtd crescente.
+        // Sold out (qty <= 0) first, then by ascending quantity.
         const ea = qa <= 0 ? 0 : 1;
         const eb = qb <= 0 ? 0 : 1;
         if (ea !== eb) return ea - eb;
@@ -146,7 +146,7 @@ export default function Dashboard() {
       })
       .slice(0, 5);
 
-    // Agrupamento para o Gráfico de Barras
+    // Grouping for the Bar Chart
     const categoriasMap = products.reduce((acc, p) => {
       const cat = p.categoria || "Sem categoria";
       if (!acc[cat]) acc[cat] = { categoria: cat, vendas: 0, custo: 0 };
@@ -165,8 +165,8 @@ export default function Dashboard() {
       }))
       .sort((a, b) => b.vendas - a.vendas);
 
-    // metrics.lowStockCount (isLowStock) exclui esgotados por definição —
-    // soma-se a contagem de esgotados à parte para não subestimar o total.
+    // metrics.lowStockCount (isLowStock) excludes sold-out items by definition —
+    // the sold-out count is added separately so as not to underestimate the total.
     const baixoCount = metrics.lowStockCount;
     const esgotadoCount = products.filter(
       (p) => (Number(p.qtd) || 0) <= 0
@@ -193,7 +193,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Alert de Erro/Sucesso */}
+      {/* Error/Success Alert */}
       {alertMessage && (
         <AlertMessage
           type={alertMessage.type}
@@ -202,7 +202,7 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Cabeçalho */}
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-extrabold text-ink-primary tracking-tight">
@@ -220,7 +220,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Cards de Resumo */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <SummaryCard
           label="Faturamento Potencial"
@@ -247,10 +247,10 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Barra de Meta de Lucro */}
+      {/* Profit Goal Bar */}
       <ProfitGoalBar />
 
-      {/* Gráfico de Categorias Real */}
+      {/* Real Category Chart */}
       {dashboardStats.dadosCategoria.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 p-5 hover:border-brand transition-all duration-200">
           <h3 className="text-slate-900 font-bold text-base mb-4">
@@ -314,7 +314,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Lista Real de Críticos */}
+      {/* Real Critical Items List */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-brand transition-all duration-200 flex flex-col">
         <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
           <h3 className="text-slate-900 font-bold text-sm">

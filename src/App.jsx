@@ -12,7 +12,7 @@ import Register from "./pages/Register";
 import { Loader } from "lucide-react";
 
 /**
- * Rota protegida — redireciona para /login se não autenticado.
+ * Protected route — redirects to /login if not authenticated.
  */
 function PrivateRoute({ children }) {
   const { session, loading } = useAuth();
@@ -26,8 +26,8 @@ function PrivateRoute({ children }) {
 }
 
 /**
- * Rota pública — redireciona para /dashboard se já autenticado.
- * Evita que usuário logado acesse /login ou /register.
+ * Public route — redirects to /dashboard if already authenticated.
+ * Prevents a logged-in user from accessing /login or /register.
  */
 function PublicRoute({ children }) {
   const { session, loading } = useAuth();
@@ -45,7 +45,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Rotas públicas */}
+          {/* Public routes */}
           <Route
             path="/login"
             element={
@@ -63,7 +63,7 @@ function App() {
             }
           />
 
-          {/* Rotas protegidas */}
+          {/* Protected routes */}
           <Route
             path="/"
             element={

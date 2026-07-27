@@ -5,11 +5,11 @@ import {
 } from "../lib/supabaseClient";
 import { DEFAULT_LOW_STOCK_THRESHOLD } from "../lib/stock";
 
-// Hook fino para as preferências do usuário logado.
-// Segue o mesmo formato de useCategories: { preferences, loading, error,
-// updatePreferences, refetch }. Quando ainda não existir linha em
-// user_preferences para o usuário, preferences vira um objeto com o default
-// global para que consumidores possam usar low_stock_threshold sem checar null.
+// Thin hook for the logged-in user's preferences.
+// Follows the same format as useCategories: { preferences, loading, error,
+// updatePreferences, refetch }. When there is no row yet in
+// user_preferences for the user, preferences becomes an object with the global
+// default so consumers can use low_stock_threshold without checking for null.
 export function useUserPreferences() {
   const [preferences, setPreferences] = useState({
     low_stock_threshold: DEFAULT_LOW_STOCK_THRESHOLD,
@@ -43,10 +43,10 @@ export function useUserPreferences() {
     };
   }, [load]);
 
-  // Aceita tanto um número (compat: só o limiar de estoque) quanto um objeto
-  // com qualquer subconjunto de campos ({ low_stock_threshold, profit_goal,
-  // profit_goal_start, profit_goal_end }). Mescla o resultado ao estado atual
-  // para não perder campos que não vieram no update.
+  // Accepts either a number (compat: stock threshold only) or an object
+  // with any subset of fields ({ low_stock_threshold, profit_goal,
+  // profit_goal_start, profit_goal_end }). Merges the result into the current state
+  // so as not to lose fields that weren't part of the update.
   const updatePreferences = useCallback(async (patch) => {
     const payload =
       typeof patch === "object" && patch !== null
