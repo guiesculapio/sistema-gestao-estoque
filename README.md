@@ -1,69 +1,160 @@
-Smart Inventory Dashboard 📦
+<div align="center">
 
-O Smart Inventory Dashboard é uma solução de gestão de estoque desenhada para eliminar ineficiências operacionais como quebras de estoque e perdas financeiras. Desenvolvido para oferecer visão estratégica de negócio, o sistema transforma dados brutos em decisões inteligentes, permitindo que lojistas identifiquem margens de lucro, capital imobilizado e produtos com performance crítica em tempo real.
+<img src="public/logo.jpg" alt="Estoklab Logo" width="80" />
 
-🚀 O Problema
-Muitos pequenos negócios operam no "achismo" ou em planilhas manuais propensas a erros. Este projeto centraliza a gestão para resolver:
+# Estoklab
 
-Falta de visibilidade: Incapacidade de prever faturamento real.
+**Inventory management system built to solve a real problem.**
 
-Perdas operacionais: Dificuldade em rastrear movimentações e histórico de produtos.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit-22c55e?style=for-the-badge)](https://sistema-gestao-estoque.vercel.app/login)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/guiesculapio/sistema-gestao-estoque)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com)
 
-Margens ocultas: Falta de análise sobre quais categorias trazem lucro versus quais consomem capital (Capital Preso).
+---
 
-🛠️ Tecnologias
-O projeto foi construído com uma arquitetura focada em performance e escalabilidade:
+*Um amigo tinha uma loja física e controlava o estoque no papel. Vi o problema, quis resolver.*
 
-Frontend: React.js, Tailwind CSS (interface responsiva e limpa).
+*A friend had a physical store and managed inventory on paper. I saw the problem and decided to fix it.*
 
-Backend: Supabase (Backend-as-a-Service, com foco em segurança RLS e tempo real).
+</div>
 
-Deploy: Vercel (CI/CD contínuo).
+---
 
-✨ Funcionalidades Principais
-Dashboard Dinâmico: Visualização imediata de faturamento potencial, lucro previsto e alerta de itens críticos.
+## 📸 Screenshots
 
-Gestão de Inventário: Cadastro intuitivo com cálculo automático de margens de lucro entre custo e venda.
+<div align="center">
 
-Frente de Caixa (PDV): Interface otimizada para registro rápido de vendas com atualização em tempo real dos relatórios.
+**Dashboard**
+![Dashboard](src/assets/Dashboard.png)
 
-Relatórios de Performance: Análise financeira avançada, cruzando dados de custo vs. venda e identificando capital imobilizado.
+**Inventário**
+![Inventário](src/assets/Inventario.png)
 
-🧠 Desafios Técnicos
-O maior desafio deste projeto não foi apenas a interface, mas a implementação da lógica de negócio:
+</div>
 
-Garantir a integridade dos dados ao calcular margens de lucro e movimentações de estoque em tempo real.
+---
 
-Estruturar o banco de dados relacional para que o cálculo de "Capital Preso" e "ROI" fosse performático, evitando latência no frontend.
+## ✨ Features
 
-A separação de responsabilidades (Frontend vs. Backend) para garantir que a lógica de cálculo não ficasse exposta ou vulnerável.
+| Funcionalidade | Descrição |
+|---|---|
+| 📦 **Inventário** | CRUD completo com busca, ordenação e cálculo de margem em tempo real |
+| 🛒 **PDV (Ponto de Venda)** | Frente de caixa com leitor de código de barras e baixa automática no estoque |
+| 📊 **Relatórios** | Análise financeira com margem, lucro, ROI e capital parado |
+| 🎯 **Meta de Lucro** | Barra de progresso motivacional com período personalizável |
+| 📄 **Exportação PDF** | Relatórios de entrada e saída de mercadorias |
+| ⚠️ **Alertas de Estoque** | Limiar configurável por produto ou global |
+| 🔐 **Multi-tenant** | Isolamento real de dados por usuário via RLS no PostgreSQL |
+| 👤 **Autenticação** | Cadastro público com confirmação de email via Supabase Auth |
 
-📸 Preview
-![Preview do Smart Inventory Dashboard](./src/assets/Inventario.png)
+---
 
-🛣️ Roadmap (Próximos Passos)
-O projeto está em evolução para se tornar uma plataforma SaaS completa:
+## 🛠️ Stack
 
-Autenticação: Implementação de login e perfis de acesso.
+- **Frontend:** React 18 + Vite + JavaScript
+- **Styling:** Tailwind CSS
+- **Backend:** Supabase (PostgreSQL + Auth + Storage)
+- **Charts:** Recharts
+- **PDF:** jsPDF + jsPDF-AutoTable
+- **Icons:** Lucide React
+- **Deploy:** Vercel
 
-Dashboard de Usuário: Painéis personalizados por nível de acesso.
+---
 
-Expansão SaaS: Funcionalidades multi-tenant para múltiplos clientes.
+## 🏗️ Architecture
 
-💡 Como rodar localmente
-Clone este repositório:
+O sistema opera sob uma arquitetura **multi-tenant isolada no banco de dados**:
 
-Bash
-git clone [https://github.com/guiesculapio/sistema-gestao-estoque.git]  
-Instale as dependências:
+- **Autenticação** gerenciada pelo `auth.users` do Supabase
+- **Isolamento via RLS:** toda tabela possui uma coluna `user_id` vinculada ao `auth.uid()` — um usuário nunca acessa dados de outro
+- **Fonte única de verdade:** `InventoryContext` centraliza o estado global, métricas calculadas e operações de escrita
+- **Camada de dados:** todas as queries do Supabase passam por `src/lib/supabaseClient.js` — nenhuma página faz query direta
 
-Bash
+**Estrutura de pastas:**
+```
+src/
+├── components/       # Componentes reutilizáveis
+│   └── layout/       # Shell da aplicação (Sidebar, Header, Modais)
+├── context/          # Estado global (Auth + Inventory)
+├── hooks/            # Hooks de dados (categorias, meta, preferências)
+├── lib/              # Supabase client, PDF, utilitários de estoque
+├── pages/            # Páginas da aplicação
+└── utils/            # Funções utilitárias compartilhadas (format.js)
+```
+
+---
+
+## 🔑 Key Technical Decisions
+
+**Por que RLS no banco em vez de validação só no frontend?**
+Validação client-side é UX — RLS é segurança real. Com múltiplos usuários no mesmo banco, a única garantia verdadeira de isolamento é a policy no PostgreSQL.
+
+**Por que Supabase em vez de backend próprio?**
+Era necessário atender uma necessidade real rapidamente, com possibilidade de escala futura. Supabase entrega Auth, PostgreSQL, RLS e API REST sem servidor próprio — ideal para um MVP que precisa de segurança de produção desde o início.
+
+**Por que o schema SQL está versionado no repositório?**
+`supabase_schema.sql` documenta as tabelas, constraints e políticas de RLS. Qualquer dev pode entender as decisões de banco sem precisar acessar o painel do Supabase.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+
+- Conta no [Supabase](https://supabase.com)
+
+### Installation
+
+```bash
+# Clone o repositório
+git clone https://github.com/guiesculapio/sistema-gestao-estoque.git
+cd sistema-gestao-estoque
+
+# Instale as dependências
 npm install
-Configure o arquivo .env com suas credenciais do Supabase.
 
-Execute o projeto:
+# Configure as variáveis de ambiente
+# Crie manualmente o arquivo .env.local com as variáveis abaixo
 
-Bash
+
+# Execute as migrations
+# Cole o conteúdo de supabase_schema.sql no SQL Editor do Supabase
+
+# Inicie o servidor de desenvolvimento
 npm run dev
+```
 
-Desenvolvido por Guilherme Esculapio
+### Environment Variables
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+---
+
+## 🗺️ Roadmap (v2)
+
+- [ ] Notificações de estoque crítico por email (Supabase Edge Functions)
+- [ ] Histórico de preços por produto
+- [ ] Relatório de lucratividade por período com gráfico de tendência
+- [ ] Campo de fornecedor nos produtos
+- [ ] Testes automatizados (Vitest + Testing Library)
+- [ ] PWA — instalável no celular do lojista
+
+---
+
+## 👨‍💻 About
+
+Desenvolvido por **Guilherme Esculápio** — estudante de desenvolvimento web com foco em frontend e interesse crescente em backend e segurança.
+
+Este é meu primeiro projeto real — não um exercício, mas algo que alguém usa de fato. Ainda tenho muito a aprender, e é exatamente isso que me motiva a continuar.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/guilherme-e/)
+
+---
+
+<div align="center">
+<sub>Estoklab v1.0 · Built with ❤️ to help a friend</sub>
+</div>
