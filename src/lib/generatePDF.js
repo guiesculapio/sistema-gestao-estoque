@@ -80,8 +80,8 @@ export function generateInboundPDF({
       nome,
       categoria,
       qtd.toString(),
-      formatBRL(custo),
-      formatBRL(total),
+      brl(custo),
+      brl(total),
       formatDate(m.created_at),
     ];
   });
@@ -90,7 +90,7 @@ export function generateInboundPDF({
     startY: 58,
     head: [["Produto", "Categoria", "Qtd.", "Custo Unit.", "Custo Total", "Data"]],
     body: rows,
-    foot: [["", "", "", "TOTAL", formatBRL(totalCusto), ""]],
+    foot: [["", "", "", "TOTAL", brl(totalCusto), ""]],
     headStyles: { fillColor: [15, 118, 110], textColor: 255, fontStyle: "bold" },
     footStyles: {
       fillColor: [241, 245, 249],
@@ -154,8 +154,8 @@ export function generateOutboundPDF({
       nome,
       categoria,
       qtd.toString(),
-      formatBRL(preco),
-      formatBRL(total),
+      brl(preco),
+      brl(total),
       formatDate(m.created_at),
     ];
   });
@@ -166,7 +166,7 @@ export function generateOutboundPDF({
       ["Produto", "Categoria", "Qtd. Vendida", "Preço Unit.", "Total", "Data"],
     ],
     body: rows,
-    foot: [["", "", "", "TOTAL FATURADO", formatBRL(totalFaturado), ""]],
+    foot: [["", "", "", "TOTAL FATURADO", brl(totalFaturado), ""]],
     headStyles: { fillColor: [15, 118, 110], textColor: 255, fontStyle: "bold" },
     footStyles: {
       fillColor: [241, 245, 249],
