@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut, Menu } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -25,11 +25,19 @@ export default function Header() {
 
   return (
     <header className="flex items-center justify-between gap-4">
+      <button
+        onClick={onMenuClick}
+        className="md:hidden flex-shrink-0 p-2 -ml-1 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+        aria-label="Abrir menu"
+      >
+        <Menu size={20} />
+      </button>
+
       <div className="hidden sm:block min-w-0">
-        <h1 className="text-slate-900 text-base font-bold truncate tracking-tight">
+        <h1 className="text-slate-900 text-sm md:text-base font-bold truncate tracking-tight">
           Estoklab
         </h1>
-        <p className="text-slate-400 text-sm">
+        <p className="text-slate-400 text-xs md:text-sm">
           {new Date().toLocaleDateString("pt-BR", {
             weekday: "long",
             day: "numeric",

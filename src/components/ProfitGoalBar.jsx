@@ -160,7 +160,7 @@ export default function ProfitGoalBar() {
             />
           </div>
 
-          <div className="flex items-center justify-between mt-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-3">
             <div>
               <p className="text-slate-500 text-[10px] uppercase tracking-widest font-semibold">
                 Lucro atual
@@ -169,7 +169,7 @@ export default function ProfitGoalBar() {
                 {brl(lucroAtual)}
               </p>
             </div>
-            <div className="text-right">
+            <div className="md:text-right">
               <p className="text-slate-400 text-xs">
                 {atingiu ? "Meta" : `Faltam ${brl(restante)} de`}
               </p>

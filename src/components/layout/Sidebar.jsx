@@ -52,53 +52,75 @@ function NavItem({ to, icon: Icon, label }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ open = false, onClose }) {
   const { user } = useAuth();
   const email = user?.email ?? "";
   const initials = email.slice(0, 2).toUpperCase();
   const displayEmail = email.length > 22 ? email.slice(0, 22) + "..." : email;
 
-  return (
-    <div className="p-3 flex-shrink-0 h-screen sticky top-0 bg-slate-100 select-none">
-      <aside className="bg-slate-900 w-56 h-full rounded-2xl flex flex-col overflow-hidden">
-        {/* ── Logo / Brand ── */}
-        <div className="px-4 py-5 flex items-center gap-2.5">
-          <img
-            src="/logo.jpg"
-            alt="Estoklab"
-            className="w-8 h-8 rounded-lg object-contain bg-white"
-          />
-          <div className="leading-tight">
-            <p className="text-white font-bold text-sm tracking-tight">
-              Estoklab
-            </p>
-            <p className="text-slate-500 text-[10px] font-mono">v1.0</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto space-y-0.5">
-          <p className="text-slate-500 text-[10px] uppercase tracking-widest font-semibold px-4 mb-1 mt-4">
-            Menu Principal
+  const asideContent = (
+    <aside className="bg-slate-900 w-56 h-full rounded-2xl flex flex-col overflow-hidden">
+      {/* ── Logo / Brand ── */}
+      <div className="px-4 py-5 flex items-center gap-2.5">
+        <img
+          src="/logo.jpg"
+          alt="Estoklab"
+          className="w-8 h-8 rounded-lg object-contain bg-white"
+        />
+        <div className="leading-tight">
+          <p className="text-white font-bold text-sm tracking-tight">
+            Estoklab
           </p>
-          {NAV_ITEMS.map((item) => (
-            <NavItem key={item.to} {...item} />
-          ))}
-        </nav>
-
-        <div className="border-t border-slate-800 p-3">
-          {BOTTOM_ITEMS.map((item) => (
-            <NavItem key={item.to} {...item} />
-          ))}
-
-          {/* User card */}
-          <div className="mt-2 flex items-center gap-2.5 px-3 py-2.5 bg-slate-800 rounded-xl">
-            <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold">
-              {initials}
-            </div>
-            <p className="text-slate-400 text-xs truncate">{displayEmail}</p>
-          </div>
+          <p className="text-slate-500 text-[10px] font-mono">v1.0</p>
         </div>
-      </aside>
-    </div>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto space-y-0.5">
+        <p className="text-slate-500 text-[10px] uppercase tracking-widest font-semibold px-4 mb-1 mt-4">
+          Menu Principal
+        </p>
+        {NAV_ITEMS.map((item) => (
+          <NavItem key={item.to} {...item} />
+        ))}
+      </nav>
+
+      <div className="border-t border-slate-800 p-3">
+        {BOTTOM_ITEMS.map((item) => (
+          <NavItem key={item.to} {...item} />
+        ))}
+
+        {/* User card */}
+        <div className="mt-2 flex items-center gap-2.5 px-3 py-2.5 bg-slate-800 rounded-xl">
+          <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold">
+            {initials}
+          </div>
+          <p className="text-slate-400 text-xs truncate">{displayEmail}</p>
+        </div>
+      </div>
+    </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <div className="hidden md:block p-3 flex-shrink-0 h-screen sticky top-0 bg-slate-100 select-none">
+        {asideContent}
+      </div>
+
+      {/* Mobile drawer */}
+      {open && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={onClose}
+        />
+      )}
+      <div
+        className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 h-full p-3 bg-slate-100 select-none transition-transform duration-200 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {asideContent}
+      </div>
+    </>
   );
 }

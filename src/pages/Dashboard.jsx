@@ -19,6 +19,7 @@ import {
   Zap,
 } from "lucide-react";
 import { brl, brlK } from "../utils/format";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 // ─────────────────────────────────────────────────────────────
 // 2. SUB-COMPONENTS
@@ -106,6 +107,7 @@ function AlertMessage({ type, message, onClose }) {
 
 export default function Dashboard() {
   const { products, metrics, userPreferences, loadError } = useInventory();
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
   const [alertMessage, setAlertMessage] = useState(null);
 
@@ -250,90 +252,97 @@ export default function Dashboard() {
       {/* Profit Goal Bar */}
       <ProfitGoalBar />
 
-      {/* Real Category Chart */}
-      {dashboardStats.dadosCategoria.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 hover:border-brand transition-all duration-200">
-          <h3 className="text-slate-900 font-bold text-base mb-4">
-            Volume por Categoria
-          </h3>
-          <ResponsiveContainer
-            width="100%"
-            height={Math.max(200, dashboardStats.dadosCategoria.length * 45)}
-          >
-            <BarChart
-              data={dashboardStats.dadosCategoria}
-              layout="vertical"
-              margin={{ top: 4, right: 20, left: 0, bottom: 4 }}
-            >
-              <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                type="number"
-                tickFormatter={brlK}
-                tick={{ fontSize: 11, fill: "#94a3b8" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                type="category"
-                dataKey="categoria"
-                tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
-                axisLine={false}
-                tickLine={false}
-                width={90}
-              />
-              <Tooltip
-                cursor={{ fill: "transparent" }}
-                contentStyle={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                  color: "#0f172a",
-                  fontSize: "12px",
-                }}
-                labelStyle={{ color: "#0f172a" }}
-                itemStyle={{ color: "#0f172a" }}
-              />
-              <Bar
-                dataKey="vendas"
-                fill="#22c55e"
-                barSize={20}
-                radius={[0, 4, 4, 0]}
-                cursor="pointer"
-                isAnimationActive={true}
-                animationDuration={800}
-                animationEasing="ease-out"
-                activeBar={{
-                  fill: "#16a34a",
-                  radius: [0, 4, 4, 0],
-                  filter: "drop-shadow(0 0 6px rgba(34,197,94,0.5))",
-                }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+      {/* Category chart + Urgent restock panel */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Real Critical Items List — comes first on mobile */}
+        <div className="order-1 md:order-2 md:col-span-1 bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-brand transition-all duration-200 flex flex-col">
+          <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="text-slate-900 font-bold text-sm">
+              Reposição Urgente
+            </h3>
+            <AlertTriangle size={14} className="text-amber-500" />
+          </div>
+          <div className="flex-1">
+            {dashboardStats.criticos.length > 0 ? (
+              dashboardStats.criticos.map((p, i) => (
+                <ProdutoCritico key={p.id} produto={p} rank={i + 1} />
+              ))
+            ) : (
+              <div className="py-8 text-center text-slate-400">
+                <Package size={24} className="mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Todos os produtos em bom nível</p>
+              </div>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Real Critical Items List */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-brand transition-all duration-200 flex flex-col">
-        <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-slate-900 font-bold text-sm">
-            Reposição Urgente
-          </h3>
-          <AlertTriangle size={14} className="text-amber-500" />
-        </div>
-        <div className="flex-1">
-          {dashboardStats.criticos.length > 0 ? (
-            dashboardStats.criticos.map((p, i) => (
-              <ProdutoCritico key={p.id} produto={p} rank={i + 1} />
-            ))
-          ) : (
-            <div className="py-8 text-center text-slate-400">
-              <Package size={24} className="mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Todos os produtos em bom nível</p>
-            </div>
-          )}
-        </div>
+        {/* Real Category Chart */}
+        {dashboardStats.dadosCategoria.length > 0 && (
+          <div className="order-2 md:order-1 md:col-span-2 bg-white rounded-xl border border-slate-200 p-5 hover:border-brand transition-all duration-200">
+            <h3 className="text-slate-900 font-bold text-base mb-4">
+              Volume por Categoria
+            </h3>
+            <ResponsiveContainer
+              width="100%"
+              height={
+                isMobile
+                  ? 200
+                  : Math.max(200, dashboardStats.dadosCategoria.length * 45)
+              }
+            >
+              <BarChart
+                data={dashboardStats.dadosCategoria}
+                layout="vertical"
+                margin={{ top: 4, right: 20, left: 0, bottom: 4 }}
+              >
+                <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  type="number"
+                  tickFormatter={brlK}
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="categoria"
+                  tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={90}
+                />
+                <Tooltip
+                  cursor={{ fill: "transparent" }}
+                  contentStyle={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                    color: "#0f172a",
+                    fontSize: "12px",
+                  }}
+                  labelStyle={{ color: "#0f172a" }}
+                  itemStyle={{ color: "#0f172a" }}
+                />
+                <Bar
+                  dataKey="vendas"
+                  fill="#22c55e"
+                  barSize={20}
+                  radius={[0, 4, 4, 0]}
+                  cursor="pointer"
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationEasing="ease-out"
+                  activeBar={{
+                    fill: "#16a34a",
+                    radius: [0, 4, 4, 0],
+                    filter: "drop-shadow(0 0 6px rgba(34,197,94,0.5))",
+                  }}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
     </div>
   );
