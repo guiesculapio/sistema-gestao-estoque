@@ -114,7 +114,7 @@ function ProdutoRow({ produto, userPreferences, onEdit, onDelete, onHistory }) {
         : "text-slate-900";
   return (
     <tr className="group border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors duration-150">
-      <td className="px-4 py-3.5">
+      <td className="px-4 py-3.5 min-w-[140px]">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">
             <Package size={14} className="text-slate-400" />
@@ -124,36 +124,36 @@ function ProdutoRow({ produto, userPreferences, onEdit, onDelete, onHistory }) {
           </span>
         </div>
       </td>
-      <td className="px-4 py-3.5">
+      <td className="hidden md:table-cell px-4 py-3.5">
         <span className="text-slate-500 text-sm">{produto.categoria}</span>
       </td>
-      <td className="px-4 py-3.5">
+      <td className="px-4 py-3.5 min-w-[60px]">
         <span className={`text-sm font-bold tabular-nums ${qtyColor}`}>
           {produto.qtd}
         </span>
       </td>
-      <td className="px-4 py-3.5">
+      <td className="hidden md:table-cell px-4 py-3.5">
         <span className="text-blue-600 font-medium text-sm tabular-nums">
           {brl(produto.precoCusto)}
         </span>
       </td>
-      <td className="px-4 py-3.5">
+      <td className="hidden md:table-cell px-4 py-3.5">
         <span className="text-brand font-medium text-sm tabular-nums">
           {brl(produto.precoVenda)}
         </span>
       </td>
-      <td className="px-4 py-3.5">
+      <td className="hidden md:table-cell px-4 py-3.5">
         <MargemBadge custo={produto.precoCusto} venda={produto.precoVenda} />
       </td>
-      <td className="px-4 py-3.5">
+      <td className="hidden md:table-cell px-4 py-3.5">
         <span className="text-slate-900 font-semibold text-sm tabular-nums">
           {brl(valorTotal)}
         </span>
       </td>
-      <td className="px-4 py-3.5">
+      <td className="px-4 py-3.5 min-w-[80px]">
         <StatusBadge status={produto.status} />
       </td>
-      <td className="px-4 py-3.5">
+      <td className="hidden md:table-cell px-4 py-3.5">
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           <button
             onClick={() => onHistory(produto)}
@@ -313,7 +313,8 @@ export default function Inventario() {
           }}
           className="flex items-center gap-2 bg-brand text-white font-bold rounded-xl px-4 py-2 hover:bg-brand-hover transition-colors duration-150"
         >
-          <Plus size={15} /> Adicionar Produto
+          <Plus size={16} />
+          <span className="hidden md:inline">Adicionar Produto</span>
         </button>
       </div>
 
@@ -342,15 +343,15 @@ export default function Inventario() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px]">
+        <div className="md:overflow-x-auto">
+          <table className="w-full md:min-w-[920px]">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <Th
                   column="nome"
                   sortConfig={sortConfig}
                   onSort={handleSort}
-                  className="w-[22%]"
+                  className="w-[22%] min-w-[140px]"
                 >
                   Produto
                 </Th>
@@ -358,7 +359,7 @@ export default function Inventario() {
                   column="categoria"
                   sortConfig={sortConfig}
                   onSort={handleSort}
-                  className="w-[11%]"
+                  className="hidden md:table-cell w-[11%]"
                 >
                   Categoria
                 </Th>
@@ -366,7 +367,7 @@ export default function Inventario() {
                   column="qtd"
                   sortConfig={sortConfig}
                   onSort={handleSort}
-                  className="w-[5%]"
+                  className="w-[15%] md:w-[5%]"
                 >
                   Qtd.
                 </Th>
@@ -374,7 +375,7 @@ export default function Inventario() {
                   column="precoCusto"
                   sortConfig={sortConfig}
                   onSort={handleSort}
-                  className="w-[10%]"
+                  className="hidden md:table-cell w-[10%]"
                 >
                   Custo
                 </Th>
@@ -382,7 +383,7 @@ export default function Inventario() {
                   column="precoVenda"
                   sortConfig={sortConfig}
                   onSort={handleSort}
-                  className="w-[10%]"
+                  className="hidden md:table-cell w-[10%]"
                 >
                   Venda
                 </Th>
@@ -390,7 +391,7 @@ export default function Inventario() {
                   column="margem"
                   sortConfig={sortConfig}
                   onSort={handleSort}
-                  className="w-[9%]"
+                  className="hidden md:table-cell w-[9%]"
                 >
                   Margem
                 </Th>
@@ -398,7 +399,7 @@ export default function Inventario() {
                   column="valorTotal"
                   sortConfig={sortConfig}
                   onSort={handleSort}
-                  className="w-[11%]"
+                  className="hidden md:table-cell w-[11%]"
                 >
                   Valor Total
                 </Th>
@@ -406,11 +407,11 @@ export default function Inventario() {
                   column="status"
                   sortConfig={sortConfig}
                   onSort={handleSort}
-                  className="w-[13%]"
+                  className="w-[25%] md:w-[13%]"
                 >
                   Status
                 </Th>
-                <th className="px-4 py-3 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-widest w-[7%]">
+                <th className="hidden md:table-cell px-4 py-3 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-widest w-[7%]">
                   Ações
                 </th>
               </tr>
