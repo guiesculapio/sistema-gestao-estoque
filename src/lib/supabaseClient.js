@@ -694,3 +694,25 @@ export async function requestAccountDeletion() {
   if (error) return { error: error.message };
   return { success: true };
 }
+
+/**
+ * Fetches sales rows for the logged-in user since a given date, for use as
+ * restock-forecast input. RLS automatically filters by auth.uid() = user_id,
+ * same as fetchSales.
+ * @param {string} sinceISODate - ISO date/timestamp; only rows with
+ *   sold_at >= sinceISODate are returned.
+ * @returns {Promise<Array<{product_id:number, qty_sold:number, sold_at:string}>>}
+ */
+export async function fetchSalesSince(sinceISODate) {
+  const { data, error } = await supabase
+    .from("sales")
+    .select("product_id, qty_sold, sold_at")
+    .gte("sold_at", sinceISODate)
+    .order("sold_at", { ascending: true });
+
+  if (error) {
+    console.error("❌ Error fetching recent sales:", error.message);
+    throw error;
+  }
+  return data || [];
+}
