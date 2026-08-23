@@ -22,6 +22,7 @@ import {
   deleteCategory as supabaseDeleteCategory,
 } from "../lib/supabaseClient";
 import { DEFAULT_LOW_STOCK_THRESHOLD } from "../lib/stock";
+import ConfirmModal from "../components/ConfirmModal";
 
 const TABS = [
   {
@@ -401,6 +402,7 @@ function CategoriasSection() {
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [rowError, setRowError] = useState({}); // id -> message
+  const [confirmDeleteCat, setConfirmDeleteCat] = useState(null); // { id, name } da categoria
 
   const startEdit = (cat) => {
     setEditingId(cat.id);
@@ -441,12 +443,12 @@ function CategoriasSection() {
     cancelEdit();
   };
 
-  const handleDelete = async (cat) => {
-    const confirmou = window.confirm(
-      `Excluir a categoria "${cat.name}"? Esta ação não pode ser desfeita.`
-    );
-    if (!confirmou) return;
+  const handleDeleteClick = (cat) => {
+    setConfirmDeleteCat({ id: cat.id, name: cat.name });
+  };
 
+  const handleDeleteCatConfirm = async () => {
+    const cat = confirmDeleteCat;
     setDeletingId(cat.id);
     setRowError((prev) => ({ ...prev, [cat.id]: null }));
     const { success, error } = await supabaseDeleteCategory(cat.id);
@@ -456,9 +458,11 @@ function CategoriasSection() {
         ...prev,
         [cat.id]: error || "Não foi possível excluir",
       }));
+      setConfirmDeleteCat(null);
       return;
     }
     await refetch();
+    setConfirmDeleteCat(null);
   };
 
   return (
@@ -579,7 +583,7 @@ function CategoriasSection() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDelete(cat)}
+                              onClick={() => handleDeleteClick(cat)}
                               disabled={isDeleting}
                               className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-60"
                               title="Excluir"
@@ -601,6 +605,21 @@ function CategoriasSection() {
           </table>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!confirmDeleteCat}
+        onConfirm={handleDeleteCatConfirm}
+        onCancel={() => setConfirmDeleteCat(null)}
+        title="Excluir categoria"
+        message={
+          <>
+            Tem certeza que deseja excluir{" "}
+            <strong className="text-slate-900">{confirmDeleteCat?.name}</strong>?
+            Categorias com produtos vinculados não podem ser excluídas.
+          </>
+        }
+        confirmLabel="Excluir categoria"
+      />
     </div>
   );
 }

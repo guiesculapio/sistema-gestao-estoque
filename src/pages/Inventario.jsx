@@ -18,6 +18,7 @@ import { isLowStock } from "../lib/stock";
 // Modal components
 import ModalAddProduto from "../components/layout/ModalAddProduto";
 import ModalHistorico from "../components/layout/ModalHistorico";
+import ConfirmModal from "../components/ConfirmModal";
 import { brl } from "../utils/format";
 
 // ─────────────────────────────────────────────
@@ -170,7 +171,7 @@ function ProdutoRow({ produto, userPreferences, onEdit, onDelete, onHistory }) {
             <Pencil size={14} />
           </button>
           <button
-            onClick={() => onDelete(produto.id, produto.nome)}
+            onClick={() => onDelete(produto)}
             title="Excluir produto"
             className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50"
           >
@@ -216,6 +217,7 @@ export default function Inventario() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null); // State for the product being edited
   const [historyProduct, setHistoryProduct] = useState(null); // Product selected for history
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, nome } do produto a excluir
 
   // Data and functions from the Context
   const { products: produtos, deleteProduct, userPreferences } = useInventory();
@@ -271,16 +273,16 @@ export default function Inventario() {
     setHistoryProduct(null);
   };
 
-  const handleDelete = async (id, nome) => {
-    const confirmou = window.confirm(
-      `Deseja realmente excluir o produto "${nome}"?`
-    );
-    if (!confirmou) return;
+  const handleDeleteClick = (produto) => {
+    setConfirmDelete({ id: produto.id, nome: produto.nome });
+  };
 
-    const result = await deleteProduct(id);
+  const handleDeleteConfirm = async () => {
+    const result = await deleteProduct(confirmDelete.id);
     if (result?.error) {
-      alert(`Erro ao excluir "${nome}": ${result.error}`);
+      alert(`Erro ao excluir "${confirmDelete.nome}": ${result.error}`);
     }
+    setConfirmDelete(null);
   };
 
   // Footer metrics
@@ -424,7 +426,7 @@ export default function Inventario() {
                     produto={produto}
                     userPreferences={userPreferences}
                     onEdit={handleEdit}
-                    onDelete={handleDelete}
+                    onDelete={handleDeleteClick}
                     onHistory={handleHistory}
                   />
                 ))
@@ -490,6 +492,22 @@ export default function Inventario() {
         isOpen={!!historyProduct}
         onClose={handleCloseHistory}
         product={historyProduct}
+      />
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={!!confirmDelete}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete(null)}
+        title="Excluir produto"
+        message={
+          <>
+            Tem certeza que deseja excluir{" "}
+            <strong className="text-slate-900">{confirmDelete?.nome}</strong>?
+            Esta ação não pode ser desfeita.
+          </>
+        }
+        confirmLabel="Excluir produto"
       />
     </div>
   );
