@@ -660,3 +660,37 @@ export async function fetchSales() {
   }
   return data || [];
 }
+
+/**
+ * Registers an LGPD account deletion request for the logged-in user.
+ * Does not delete any data — only queues the request; an administrator
+ * processes it manually within 15 days.
+ * @returns {Promise<{success?: boolean, error?: string}>}
+ */
+export async function requestAccountDeletion() {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError || !user) return { error: "Sessão expirada." };
+
+  const { data: existing } = await supabase
+    .from("account_deletion_requests")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (existing) {
+    return { error: "Você já possui uma solicitação de exclusão pendente." };
+  }
+
+  const { error } = await supabase.from("account_deletion_requests").insert({
+    user_id: user.id,
+    email: user.email,
+    status: "pending",
+  });
+
+  if (error) return { error: error.message };
+  return { success: true };
+}

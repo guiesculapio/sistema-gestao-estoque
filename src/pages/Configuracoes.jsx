@@ -12,14 +12,18 @@ import {
   Search,
   Info,
   AlertCircle,
+  UserX,
+  CheckCircle2,
 } from "lucide-react";
 
 import { useCategories } from "../hooks/useCategories";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useInventory } from "../context/InventoryContext";
+import { useAuth } from "../context/AuthContext";
 import {
   updateCategory as supabaseUpdateCategory,
   deleteCategory as supabaseDeleteCategory,
+  requestAccountDeletion,
 } from "../lib/supabaseClient";
 import { DEFAULT_LOW_STOCK_THRESHOLD } from "../lib/stock";
 import ConfirmModal from "../components/ConfirmModal";
@@ -37,6 +41,12 @@ const TABS = [
     icon: AlertTriangle,
     description:
       "Defina a partir de qual quantidade um produto é considerado com estoque baixo",
+  },
+  {
+    id: "conta",
+    label: "Conta",
+    icon: UserX,
+    description: "Informações da conta e exclusão de dados",
   },
 ];
 
@@ -624,6 +634,99 @@ function CategoriasSection() {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB: ACCOUNT (LGPD deletion request)
+// ─────────────────────────────────────────────────────────────────────────────
+function ContaSection() {
+  const { user, signOut } = useAuth();
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const handleDeleteConfirm = async () => {
+    setDeleteLoading(true);
+    setDeleteError("");
+    const result = await requestAccountDeletion();
+    setDeleteLoading(false);
+    setShowDeleteConfirm(false);
+
+    if (result?.error) {
+      setDeleteError(result.error);
+      return;
+    }
+
+    setDeleteSuccess(true);
+    setTimeout(() => {
+      signOut();
+    }, 3000);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-bold text-slate-700">
+          Informações da conta
+        </h3>
+        <div className="mt-3">
+          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+            Email cadastrado
+          </span>
+          <p className="mt-1 text-sm text-slate-800">{user?.email}</p>
+        </div>
+      </div>
+
+      <div className="border border-red-200 bg-red-50 rounded-xl p-5">
+        <h3 className="text-red-700 font-bold text-sm">Zona de perigo</h3>
+        <h4 className="text-slate-900 font-semibold text-sm mt-3">
+          Excluir minha conta
+        </h4>
+        <p className="text-slate-500 text-xs mt-1 mb-4">
+          Ao solicitar a exclusão, todos os seus dados (produtos, vendas,
+          relatórios e configurações) serão removidos permanentemente em até
+          15 dias, conforme a LGPD. Esta ação não pode ser desfeita.
+        </p>
+
+        {deleteSuccess ? (
+          <div className="flex items-center gap-2 text-brand text-sm font-medium">
+            <CheckCircle2 size={16} />
+            Solicitação enviada. Seus dados serão removidos em até 15 dias.
+            Você será desconectado em instantes.
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={deleteLoading}
+              className="inline-flex items-center gap-2 border-2 border-red-500 text-red-600 font-bold rounded-xl px-4 py-2.5 text-sm hover:bg-red-500 hover:text-white transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Trash2 size={15} />
+              {deleteLoading ? "Enviando..." : "Solicitar exclusão de conta"}
+            </button>
+            {deleteError && (
+              <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                <AlertCircle size={11} /> {deleteError}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+        title="Solicitar exclusão de conta"
+        message="Tem certeza? Todos os seus dados serão excluídos permanentemente em até 15 dias. Esta ação não pode ser desfeita."
+        confirmLabel="Excluir minha conta"
+        danger={true}
+      />
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // PAGE
 // ─────────────────────────────────────────────────────────────
@@ -685,6 +788,7 @@ export default function Configuracoes() {
         <div className="p-6">
           {activeTab === "categorias" && <CategoriasSection />}
           {activeTab === "estoque" && <LimiarEstoqueSection />}
+          {activeTab === "conta" && <ContaSection />}
         </div>
       </div>
     </div>
